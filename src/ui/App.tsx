@@ -1,29 +1,43 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Mosaic, MosaicBranch, MosaicWindow, ExpandButton } from 'react-mosaic-component';
-import { Explorer} from './Explorer';
+import { AddYearButton, Explorer} from './Explorer';
 
 import 'react-mosaic-component/react-mosaic-component.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
 
+const mosaicToolbarControls = [<ExpandButton/>];
+
+type EvidWindowId = "editor" | "explorer" | "output";
+
 function App() {
-  function tile(id: string, path: MosaicBranch[]) {
-    if (id == "editor") {
-      return (
-        <MosaicWindow<string> path={path} title="Editor" toolbarControls={React.Children.toArray([<ExpandButton />])}>
-            <span>okienko</span>
-        </MosaicWindow>
+  function tile(id: EvidWindowId, path: MosaicBranch[]) {
+    switch (id) {
+      case "editor":
+        return (
+          <MosaicWindow<EvidWindowId> path={path} title="Editor" toolbarControls={mosaicToolbarControls}>
+              <span>tu bude editor</span>
+          </MosaicWindow>
+          );
+      case "explorer":
+        return (
+          <MosaicWindow<EvidWindowId> path={path} title="Roky" toolbarControls={[<AddYearButton/>]}>
+            <Explorer/>
+          </MosaicWindow>
         );
-    } else if (id == "explorer") {
-        return <Explorer/>;
-    } else {
-      return <div>{id}</div>;
+      case "output":
+        return (
+          <MosaicWindow<EvidWindowId> path={path} title="Spravy" toolbarControls={mosaicToolbarControls}>
+            <span>tu budu nejaky vystupy alebo nieco podobne</span>
+          </MosaicWindow>
+        );
     }
+    return <div>??</div>;
   }
   return (
     <div className="container">
-      <Mosaic<string>
+      <Mosaic<EvidWindowId>
         renderTile={tile}
         initialValue={{
           direction: 'row',

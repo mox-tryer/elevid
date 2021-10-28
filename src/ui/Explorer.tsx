@@ -1,9 +1,10 @@
 /* eslint-disable no-case-declarations */
 import { cloneDeep } from "lodash-es";
 import * as React from 'react';
-
-import { TreeNodeInfo, Tree } from "@blueprintjs/core";
 import { useCallback, useReducer } from 'react';
+import { TreeNodeInfo, Tree, Button } from "@blueprintjs/core";
+import * as evidApi from "./api";
+
 
 type NodePath = number[];
 
@@ -63,7 +64,17 @@ const INITIAL_STATE: TreeNodeInfo[] = [
     }
 ];
 
-export function Explorer(): React.ReactElement {
+export function AddYearButton(): React.ReactElement {
+    return (
+        <Button className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
+    );
+}
+
+// export interface IExplorerProps {
+//     path: MosaicBranch[]
+// }
+
+export function Explorer(/*props: IExplorerProps*/): React.ReactElement {
     const [nodes, dispatch] = useReducer(treeReducer, INITIAL_STATE);
 
     const handleNodeClick = useCallback(
@@ -99,6 +110,7 @@ export function Explorer(): React.ReactElement {
             contents={nodes}
             onNodeCollapse={handleNodeCollapse}
             onNodeExpand={handleNodeExpand}
+            onNodeClick={handleNodeClick}
         />
     )
 }

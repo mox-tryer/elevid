@@ -1,6 +1,8 @@
-import { app, BrowserWindow } from 'electron';
-
+import { app, BrowserWindow, dialog } from 'electron';
+import { ipcMain } from 'electron-typescript-ipc';
+import { IEvidAPI } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
+import * as settings from "electron-settings";
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -14,20 +16,31 @@ if (isDev) {
 // whether you're running in development or production).
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 
+declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit();
 }
 
-const createWindow = (): void => {
+type WindowSettings = {
+  height?: number,
+  width?: number,
+  maximized?: boolean
+}
+
+const createWindow = async (): Promise<void> => {
+  const windowSettings = await settings.get("window") as WindowSettings | null;
+  //windowSettings = windowSettings || { height: 600, width: 800, maximize: false };
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    height: 600,
-    width: 800,
+    height: windowSettings?.height || 600,
+    width: windowSettings?.width || 800,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      //preload: path.join(__dirname, "preload.js"),
+      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
   });
 
@@ -38,6 +51,38 @@ const createWindow = (): void => {
   if (isDev) {
     mainWindow.webContents.openDevTools({mode: "detach"});
   }
+
+  mainWindow.on("ready-to-show", () => {
+    ipcMain.removeHandler<IEvidAPI>("showOpenFile");
+    ipcMain.handle<IEvidAPI>("showOpenFile", async (_event, key) => {
+      const openResult = await dialog.showOpenDialog(mainWindow, {
+        title: "Test Open",
+        buttonLabel: "Otovit",
+        filters: [
+          { name: "JSON", extensions: ["json"] },
+          { name: "All files", extensions: ["*"]}
+        ],
+        properties: [
+          "openFile"
+        ]
+      });
+      return openResult.canceled ? null : openResult.filePaths[0];
+    });
+
+    if (windowSettings?.maximized) {
+      mainWindow.maximize();
+    }
+  });
+
+  mainWindow.on("close", () => {
+    const windowSettings: WindowSettings = {
+      height: mainWindow.getBounds().height,
+      width: mainWindow.getBounds().width,
+      maximized: mainWindow.isMaximized()
+    };
+
+    settings.setSync("window", windowSettings);
+  });
 };
 
 // This method will be called when Electron has finished

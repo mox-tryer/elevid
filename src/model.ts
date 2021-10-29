@@ -38,6 +38,29 @@ export function monthToOrder(month: MonthId): number {
     }
 }
 
+const monthLabels = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ];
+
+export function monthLabel(monthId: MonthId | number): string {
+    if (typeof monthId !== "number") {
+        monthId = monthToOrder(monthId);
+    }
+
+    return monthLabels[monthId - 1];
+}
+
 export type YearMonths = {
     [month in MonthId]: MonthEntries;
 };

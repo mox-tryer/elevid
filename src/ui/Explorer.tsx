@@ -1,99 +1,38 @@
 /* eslint-disable no-case-declarations */
 import { cloneDeep } from "lodash-es";
 import * as React from 'react';
-import { useCallback, useReducer } from 'react';
+import { useState } from 'react';
 import { TreeNodeInfo, Tree, Button } from "@blueprintjs/core";
-import { EvidDb, EvidYear } from "../model";
+import { EvidDb, EvidYear, MonthEntries, MonthId, orderToMonth, monthLabel } from "../model";
 
 
-type NodePath = number[];
+//type NodePath = number[];
 
-type TreeAction =
-    | { type: "SET_IS_EXPANDED"; payload: { path: NodePath; isExpanded: boolean } }
-    | { type: "DESELECT_ALL" }
-    | { type: "SET_IS_SELECTED"; payload: { path: NodePath; isSelected: boolean } }
-    | { type: "RESET_TREE"; payload: { tree: TreeNodeInfo[] }};
-
-function forEachNode(nodes: TreeNodeInfo[] | undefined, callback: (node: TreeNodeInfo) => void) {
-    if (nodes === undefined) {
-        return;
-    }
-
-    for (const node of nodes) {
-        callback(node);
-        forEachNode(node.childNodes, callback);
-    }
+type NodeData = {
+    yearId: number;
+    year: EvidYear;
+    monthId?: MonthId;
+    month?: MonthEntries;
 }
 
-function forNodeAtPath(nodes: TreeNodeInfo[], path: NodePath, callback: (node: TreeNodeInfo) => void) {
-    callback(Tree.nodeFromPath(path, nodes));
-}
-
-function treeReducer(state: TreeNodeInfo[], action: TreeAction) {
-    switch (action.type) {
-        case "DESELECT_ALL":
-            const newState1 = cloneDeep(state);
-            forEachNode(newState1, node => (node.isSelected = false));
-            return newState1;
-        case "SET_IS_EXPANDED":
-            const newState2 = cloneDeep(state);
-            forNodeAtPath(newState2, action.payload.path, node => (node.isExpanded = action.payload.isExpanded));
-            return newState2;
-        case "SET_IS_SELECTED":
-            const newState3 = cloneDeep(state);
-            forNodeAtPath(newState3, action.payload.path, node => (node.isSelected = action.payload.isSelected));
-            return newState3;
-        case "RESET_TREE":
-            return action.payload.tree;
-        default:
-            return state;
-    }
-}
-
-const INITIAL_STATE: TreeNodeInfo[] = [
-    {
-        id: 2021,
-        label: "2021",
-        childNodes: [
-            {
-                id: 202101,
-                label: "January"
-            },
-            {
-                id: 202102,
-                label: "February"
-            }
-        ]
-    }
-];
-
-const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-]
-
-function createMonthTreeNodes(year: number): TreeNodeInfo[] {
-    return monthNames.map((monthLabel, idx) => {
-        const node: TreeNodeInfo = {
-            id: year * 100 + (idx + 1),
-            label: monthLabel,
-            icon: "moon"
+function createMonthTreeNodes(year: number, evidYear: EvidYear, treeState: TreeState): TreeNodeInfo<NodeData>[] {
+    return Array(12).fill(0).map((_, idx) => {
+        const nodeId = year * 100 + (idx + 1);
+        const monthId = orderToMonth(idx + 1);
+        const nodeState = treeState[nodeId];
+        const node: TreeNodeInfo<NodeData> = {
+            id: nodeId,
+            label: monthLabel(monthId),
+            nodeData: { yearId: year, year: evidYear, monthId: monthId, month: evidYear.months[monthId]},
+            isExpanded: nodeState?.isExpanded,
+            isSelected: nodeState?.isSelected
+            //icon: "moon"
         };
         return node;
     });
 }
 
-function dbToTreeNodes(db: EvidDb): TreeNodeInfo[] {
+function dbToTreeNodes(db: EvidDb, treeState: TreeState): TreeNodeInfo<NodeData>[] {
     if (db == null) {
         return [{
             id: -1,
@@ -102,20 +41,43 @@ function dbToTreeNodes(db: EvidDb): TreeNodeInfo[] {
         }];
     }
 
-    const nodes: TreeNodeInfo[] = Object.entries(db)
+    const nodes: TreeNodeInfo<NodeData>[] = Object.entries(db)
         .sort(([yearStr1], [yearStr2]) => Number(yearStr1) - Number(yearStr2))
-        .map(([yearStr]) => {
+        .map(([yearStr, evidYear]) => {
             const year = Number(yearStr);
-            const yearNode: TreeNodeInfo = {
+            const nodeState = treeState[year];
+            const yearNode: TreeNodeInfo<NodeData> = {
                 id: year,
                 label: yearStr,
+                nodeData: { yearId: year, year: evidYear},
                 icon: "calendar",
-                childNodes: createMonthTreeNodes(year)
+                childNodes: createMonthTreeNodes(year, evidYear, treeState),
+                isExpanded: nodeState?.isExpanded,
+                isSelected: nodeState?.isSelected
             };
             return yearNode;
         });
 
     return nodes;
+}
+
+interface TreeNodeState {
+    isExpanded?: boolean,
+    isSelected?: boolean
+}
+
+type TreeState = Record<number, TreeNodeState>;
+
+function changeTreeState(oldTreeState: TreeState, nodeId: number, nodeChange: (nodeState: TreeNodeState) => void, allNodesChanges?: (nodeState: TreeNodeState) => void) {
+    const newTreeState = cloneDeep(oldTreeState);
+    if (!newTreeState[nodeId]) {
+        newTreeState[nodeId] = {};    
+    }
+    if (allNodesChanges) {
+        Object.entries(newTreeState).forEach(([, nodeState]) => allNodesChanges(nodeState));
+    }
+    nodeChange(newTreeState[nodeId]);
+    return newTreeState;
 }
 
 export function AddYearButton(): React.ReactElement {
@@ -125,48 +87,38 @@ export function AddYearButton(): React.ReactElement {
 }
 
 export interface IExplorerProps {
-    db: EvidDb
+    db: EvidDb,
+    onYearSelected?: (year: EvidYear, yearId: number) => void,
+    onMonthSelected?: (month: MonthEntries, year: EvidYear, monthId: MonthId, yearId: number) => void
 }
 
 export function Explorer(props: IExplorerProps): React.ReactElement {
-    const [nodes, dispatch] = useReducer(treeReducer, dbToTreeNodes(props.db));
+    const [treeState, setTreeState] = useState({} as TreeState);
 
-    // reset tree state in case of property change
-    React.useEffect(() => {
-        dispatch({type: "RESET_TREE", payload: { tree: dbToTreeNodes(props.db)}});
-    }, [props.db]);
-
-    const handleNodeClick = useCallback(
-        (node: TreeNodeInfo, nodePath: NodePath, e: React.MouseEvent<HTMLElement>) => {
-            const originallySelected = node.isSelected;
-            if (!e.shiftKey) {
-                dispatch({ type: "DESELECT_ALL" });
+    const handleNodeClick = (node: TreeNodeInfo<NodeData>) => {
+            setTreeState(changeTreeState(treeState, node.id as number, (node) => node.isSelected = true, (node) => node.isSelected = false));
+            if (!node.nodeData?.month && node.nodeData?.year) {
+                if (props.onYearSelected) {
+                    props.onYearSelected(node.nodeData.year, node.nodeData.yearId);
+                }
+            } else if (node.nodeData.year && node.nodeData.month) {
+                if (props.onMonthSelected) {
+                    props.onMonthSelected(node.nodeData.month, node.nodeData.year, node.nodeData.monthId, node.nodeData.yearId);
+                }
             }
-            dispatch({
-                payload: { path: nodePath, isSelected: originallySelected == null ? true : !originallySelected },
-                type: "SET_IS_SELECTED",
-            });
-        },
-        [],
-    );
+        };
 
-    const handleNodeCollapse = useCallback((_node: TreeNodeInfo, nodePath: NodePath) => {
-        dispatch({
-            payload: { path: nodePath, isExpanded: false },
-            type: "SET_IS_EXPANDED",
-        });
-    }, []);
+    const handleNodeCollapse = (node: TreeNodeInfo) => {
+        setTreeState(changeTreeState(treeState, node.id as number, (node) => node.isExpanded = false));
+    };
 
-    const handleNodeExpand = useCallback((_node: TreeNodeInfo, nodePath: NodePath) => {
-        dispatch({
-            payload: { path: nodePath, isExpanded: true },
-            type: "SET_IS_EXPANDED",
-        });
-    }, []);
+    const handleNodeExpand = (node: TreeNodeInfo) => {
+        setTreeState(changeTreeState(treeState, node.id as number, (node) => node.isExpanded = true));
+    };
 
     return (
-        <Tree
-            contents={nodes}
+        <Tree<NodeData>
+            contents={dbToTreeNodes(props.db, treeState)}
             onNodeCollapse={handleNodeCollapse}
             onNodeExpand={handleNodeExpand}
             onNodeClick={handleNodeClick}

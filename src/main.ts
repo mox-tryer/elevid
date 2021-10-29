@@ -3,6 +3,7 @@ import { ipcMain } from 'electron-typescript-ipc';
 import { IEvidAPI } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
+import { EvidDb } from './model';
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -27,6 +28,51 @@ type WindowSettings = {
   height?: number,
   width?: number,
   maximized?: boolean
+}
+
+const fakeDb: EvidDb = {
+  1977: {
+    entries: {
+      1: {
+        name: "Vyplata",
+        type: "income"
+      },
+      2: {
+        name: "Kreditka",
+        type: "outcome"
+      },
+      3: {
+        name: "Vynosy",
+        type: "income"
+      },
+      5: {
+        name: "Potraviny",
+        type: "outcome"
+      }
+    },
+    months: {
+      jan: {
+        1: 1500,
+        2: 1200,
+      },
+      feb: {
+        1: 1500,
+        3: 800,
+        2: 1200,
+        5: 1200
+      },
+      mar: {},
+      apr: {},
+      may: {},
+      jun: {},
+      jul: {},
+      aug: {},
+      sep: {},
+      oct: {},
+      nov: {},
+      dec: {}
+    }
+  }
 }
 
 const createWindow = async (): Promise<void> => {
@@ -54,6 +100,7 @@ const createWindow = async (): Promise<void> => {
 
   mainWindow.on("ready-to-show", () => {
     ipcMain.removeHandler<IEvidAPI>("showOpenFile");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     ipcMain.handle<IEvidAPI>("showOpenFile", async (_event, key) => {
       const openResult = await dialog.showOpenDialog(mainWindow, {
         title: "Test Open",
@@ -67,6 +114,11 @@ const createWindow = async (): Promise<void> => {
         ]
       });
       return openResult.canceled ? null : openResult.filePaths[0];
+    });
+
+    ipcMain.removeHandler<IEvidAPI>("getCurrentDb");
+    ipcMain.handle<IEvidAPI>("getCurrentDb", async () => {
+      return fakeDb;
     });
 
     if (windowSettings?.maximized) {

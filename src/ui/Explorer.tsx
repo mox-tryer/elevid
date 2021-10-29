@@ -3,7 +3,7 @@ import { cloneDeep } from "lodash-es";
 import * as React from 'react';
 import { useCallback, useReducer } from 'react';
 import { TreeNodeInfo, Tree, Button } from "@blueprintjs/core";
-import * as evidApi from "./api";
+import { EvidDb, EvidYear } from "../model";
 
 
 type NodePath = number[];
@@ -11,7 +11,8 @@ type NodePath = number[];
 type TreeAction =
     | { type: "SET_IS_EXPANDED"; payload: { path: NodePath; isExpanded: boolean } }
     | { type: "DESELECT_ALL" }
-    | { type: "SET_IS_SELECTED"; payload: { path: NodePath; isSelected: boolean } };
+    | { type: "SET_IS_SELECTED"; payload: { path: NodePath; isSelected: boolean } }
+    | { type: "RESET_TREE"; payload: { tree: TreeNodeInfo[] }};
 
 function forEachNode(nodes: TreeNodeInfo[] | undefined, callback: (node: TreeNodeInfo) => void) {
     if (nodes === undefined) {
@@ -42,6 +43,8 @@ function treeReducer(state: TreeNodeInfo[], action: TreeAction) {
             const newState3 = cloneDeep(state);
             forNodeAtPath(newState3, action.payload.path, node => (node.isSelected = action.payload.isSelected));
             return newState3;
+        case "RESET_TREE":
+            return action.payload.tree;
         default:
             return state;
     }
@@ -64,18 +67,74 @@ const INITIAL_STATE: TreeNodeInfo[] = [
     }
 ];
 
+const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+]
+
+function createMonthTreeNodes(year: number): TreeNodeInfo[] {
+    return monthNames.map((monthLabel, idx) => {
+        const node: TreeNodeInfo = {
+            id: year * 100 + (idx + 1),
+            label: monthLabel,
+            icon: "moon"
+        };
+        return node;
+    });
+}
+
+function dbToTreeNodes(db: EvidDb): TreeNodeInfo[] {
+    if (db == null) {
+        return [{
+            id: -1,
+            label: "Loading...",
+            icon: "time"
+        }];
+    }
+
+    const nodes: TreeNodeInfo[] = Object.entries(db)
+        .sort(([yearStr1], [yearStr2]) => Number(yearStr1) - Number(yearStr2))
+        .map(([yearStr]) => {
+            const year = Number(yearStr);
+            const yearNode: TreeNodeInfo = {
+                id: year,
+                label: yearStr,
+                icon: "calendar",
+                childNodes: createMonthTreeNodes(year)
+            };
+            return yearNode;
+        });
+
+    return nodes;
+}
+
 export function AddYearButton(): React.ReactElement {
     return (
-        <Button className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
+        <Button key="addYear" className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
     );
 }
 
-// export interface IExplorerProps {
-//     path: MosaicBranch[]
-// }
+export interface IExplorerProps {
+    db: EvidDb
+}
 
-export function Explorer(/*props: IExplorerProps*/): React.ReactElement {
-    const [nodes, dispatch] = useReducer(treeReducer, INITIAL_STATE);
+export function Explorer(props: IExplorerProps): React.ReactElement {
+    const [nodes, dispatch] = useReducer(treeReducer, dbToTreeNodes(props.db));
+
+    // reset tree state in case of property change
+    React.useEffect(() => {
+        dispatch({type: "RESET_TREE", payload: { tree: dbToTreeNodes(props.db)}});
+    }, [props.db]);
 
     const handleNodeClick = useCallback(
         (node: TreeNodeInfo, nodePath: NodePath, e: React.MouseEvent<HTMLElement>) => {

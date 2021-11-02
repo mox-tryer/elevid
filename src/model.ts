@@ -1,8 +1,9 @@
-export type EntryType = "income" | "outcome";
+export type EntryType = "income" | "expense";
 
 export type Entry = {
     name: string,
-    type: EntryType
+    type: EntryType,
+    order: number
 }
 
 export type YearEntries = {
@@ -14,6 +15,21 @@ export type MonthEntries = {
 }
 
 export type MonthId = "jan" | "feb" | "mar" | "apr" | "may" | "jun" | "jul" | "aug" | "sep" | "oct" | "nov" | "dec";
+
+export type YearMonths = {
+    [month in MonthId]: MonthEntries;
+}
+
+export type EvidYear = {
+    entries: YearEntries,
+    months: YearMonths
+}
+
+export type EvidDb = {
+    [year: number]: EvidYear
+}
+
+
 
 const monthIds: Array<MonthId> = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
@@ -39,16 +55,16 @@ export function monthToOrder(month: MonthId): number {
 }
 
 const monthLabels = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
+    "Január",
+    "Február",
+    "Marec",
+    "Apríl",
+    "Máj",
+    "Jún",
+    "Júl",
     "August",
     "September",
-    "October",
+    "Október",
     "November",
     "December"
   ];
@@ -59,17 +75,4 @@ export function monthLabel(monthId: MonthId | number): string {
     }
 
     return monthLabels[monthId - 1];
-}
-
-export type YearMonths = {
-    [month in MonthId]: MonthEntries;
-};
-
-export type EvidYear = {
-    entries: YearEntries,
-    months: YearMonths
-}
-
-export type EvidDb = {
-    [year: number]: EvidYear
 }

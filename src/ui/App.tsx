@@ -2,13 +2,15 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Mosaic, MosaicBranch, MosaicWindow, ExpandButton } from 'react-mosaic-component';
 import { AddYearButton, Explorer } from './Explorer';
-import { EvidDb, EvidYear, MonthEntries, MonthId, monthLabel, monthToOrder } from '../model';
+import { EvidDb, EvidYear, MonthEntries, MonthId, monthLabel } from '../model';
 
 import 'react-mosaic-component/react-mosaic-component.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
+import '@blueprintjs/table/lib/css/table.css';
+import { YearEditor } from './YearEditor';
 
-const mosaicToolbarControls = [<ExpandButton />];
+const mosaicToolbarControls = React.Children.toArray([<ExpandButton />]);
 
 interface AppPanelProps {
   path: MosaicBranch[]
@@ -22,7 +24,7 @@ interface ExplorerPanelProps extends AppPanelProps {
 
 function ExplorerPanel(props: ExplorerPanelProps) {
   return (
-    <MosaicWindow<EvidWindowId> path={props.path} title="Years" toolbarControls={[<AddYearButton />]}>
+    <MosaicWindow<EvidWindowId> path={props.path} title="Roky" toolbarControls={React.Children.toArray([<AddYearButton />])}>
       <Explorer db={props.db} onYearSelected={props.onYearSelected} onMonthSelected={props.onMonthSelected}/>
     </MosaicWindow>
   );
@@ -48,7 +50,7 @@ function EditorPanel(props: EditorPanelProps) {
     innerPanel = <span>year: {selectedNode.yearId}, month: {selectedNode.monthId}</span>;
     title = `Editor: ${selectedNode.yearId}, ${monthLabel(selectedNode.monthId)}`;
   } else if (selectedNode?.year) {
-    innerPanel = <span>year: {selectedNode.yearId}</span>;
+    innerPanel = <YearEditor year={selectedNode.year} />;
     title = `Editor: ${selectedNode.yearId}`;
   } else {
     innerPanel = <span>Select item...</span>;
@@ -64,25 +66,13 @@ function EditorPanel(props: EditorPanelProps) {
 
 function OutputPanel(props: AppPanelProps) {
   return (
-    <MosaicWindow<EvidWindowId> path={props.path} title="Spravy" toolbarControls={mosaicToolbarControls}>
+    <MosaicWindow<EvidWindowId> path={props.path} title="Správy" toolbarControls={mosaicToolbarControls}>
       <span>tu budu nejaky vystupy alebo nieco podobne</span>
     </MosaicWindow>
   );
 }
 
 type EvidWindowId = "editor" | "explorer" | "output";
-
-function tile(id: EvidWindowId, path: MosaicBranch[], db: EvidDb, selectedNode: SelectedNodeData) {
-  switch (id) {
-    case "editor":
-      return <EditorPanel path={path} selectedNode={selectedNode}/>;
-    case "explorer":
-      return <ExplorerPanel path={path} db={db}/>;
-    case "output":
-      return <OutputPanel path={path} />;
-  }
-  return <div>??</div>;
-}
 
 function App() {
   const [db, setDb] = React.useState(null as EvidDb);

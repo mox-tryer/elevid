@@ -82,7 +82,7 @@ function changeTreeState(oldTreeState: TreeState, nodeId: number, nodeChange: (n
 
 export function AddYearButton(): React.ReactElement {
     return (
-        <Button key="addYear" className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
+        <Button className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
     );
 }
 

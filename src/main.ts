@@ -35,19 +35,23 @@ const fakeDb: EvidDb = {
     entries: {
       1: {
         name: "Vyplata",
-        type: "income"
+        type: "income",
+        order: 1
       },
       2: {
         name: "Kreditka",
-        type: "outcome"
+        type: "expense",
+        order: 2
       },
       3: {
         name: "Vynosy",
-        type: "income"
+        type: "income",
+        order: 3
       },
       5: {
         name: "Potraviny",
-        type: "outcome"
+        type: "expense",
+        order: 5
       }
     },
     months: {
@@ -75,6 +79,48 @@ const fakeDb: EvidDb = {
   }
 }
 
+const fakeDbModified = false;
+
+function installAPI(mainWindow: BrowserWindow) {
+  ipcMain.removeHandler<IEvidAPI>("showOpenFile");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ipcMain.handle<IEvidAPI>("showOpenFile", async (_event, key) => {
+    const openResult = await dialog.showOpenDialog(mainWindow, {
+      title: "Test Open",
+      buttonLabel: "Otovit",
+      filters: [
+        { name: "JSON", extensions: ["json"] },
+        { name: "All files", extensions: ["*"]}
+      ],
+      properties: [
+        "openFile"
+      ]
+    });
+    return openResult.canceled ? null : openResult.filePaths[0];
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getCurrentDb");
+  ipcMain.handle<IEvidAPI>("getCurrentDb", async () => {
+    console.log("returning fakeDb");
+    return fakeDb;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("dbgLogCurrentDb");
+  ipcMain.handle<IEvidAPI>("dbgLogCurrentDb", async () => {
+    console.log(JSON.stringify(fakeDb, null, 2));
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("isDbModified");
+  ipcMain.handle<IEvidAPI>("isDbModified", async () => {
+    return fakeDbModified;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getCurrentDbYears");
+  ipcMain.handle<IEvidAPI>("getCurrentDbYears", async () => {
+    return Object.entries(fakeDb).map(([key]) => Number(key));
+  });
+}
+
 const createWindow = async (): Promise<void> => {
   const windowSettings = await settings.get("window") as WindowSettings | null;
   //windowSettings = windowSettings || { height: 600, width: 800, maximize: false };
@@ -99,27 +145,7 @@ const createWindow = async (): Promise<void> => {
   }
 
   mainWindow.on("ready-to-show", () => {
-    ipcMain.removeHandler<IEvidAPI>("showOpenFile");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ipcMain.handle<IEvidAPI>("showOpenFile", async (_event, key) => {
-      const openResult = await dialog.showOpenDialog(mainWindow, {
-        title: "Test Open",
-        buttonLabel: "Otovit",
-        filters: [
-          { name: "JSON", extensions: ["json"] },
-          { name: "All files", extensions: ["*"]}
-        ],
-        properties: [
-          "openFile"
-        ]
-      });
-      return openResult.canceled ? null : openResult.filePaths[0];
-    });
-
-    ipcMain.removeHandler<IEvidAPI>("getCurrentDb");
-    ipcMain.handle<IEvidAPI>("getCurrentDb", async () => {
-      return fakeDb;
-    });
+    installAPI(mainWindow);
 
     if (windowSettings?.maximized) {
       mainWindow.maximize();

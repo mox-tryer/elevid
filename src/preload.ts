@@ -9,6 +9,15 @@ const api: IEvidAPI = {
     },
     getCurrentDb: async () => {
       return await ipcRenderer.invoke<IEvidAPI>("getCurrentDb") as EvidDb;
+    },
+    dbgLogCurrentDb: async () => {
+      await ipcRenderer.invoke<IEvidAPI>("dbgLogCurrentDb");
+    },
+    isDbModified: async () => {
+      return await ipcRenderer.invoke<IEvidAPI>("isDbModified") as boolean;
+    },
+    getCurrentDbYears: async() => {
+      return await ipcRenderer.invoke<IEvidAPI>("getCurrentDbYears") as number[];
     }
   },
   on: {

@@ -1,9 +1,9 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import { ipcMain } from 'electron-typescript-ipc';
-import { IEvidAPI } from './ui/api';
+import { IEntryOrder, IEvidAPI } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
-import { EvidDb } from './model';
+import { Entry, EntryType, EvidDb } from './model';
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -79,12 +79,12 @@ const fakeDb: EvidDb = {
   }
 }
 
-const fakeDbModified = false;
+let fakeDbModified = false;
 
 function installAPI(mainWindow: BrowserWindow) {
   ipcMain.removeHandler<IEvidAPI>("showOpenFile");
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ipcMain.handle<IEvidAPI>("showOpenFile", async (_event, key) => {
+  ipcMain.handle<IEvidAPI>("showOpenFile", async (_event, ...args) => {
     const openResult = await dialog.showOpenDialog(mainWindow, {
       title: "Test Open",
       buttonLabel: "Otovit",
@@ -118,6 +118,57 @@ function installAPI(mainWindow: BrowserWindow) {
   ipcMain.removeHandler<IEvidAPI>("getCurrentDbYears");
   ipcMain.handle<IEvidAPI>("getCurrentDbYears", async () => {
     return Object.entries(fakeDb).map(([key]) => Number(key));
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getCurrentDbYears");
+  ipcMain.handle<IEvidAPI>("getCurrentDbYears", async () => {
+    return Object.entries(fakeDb).map(([key]) => Number(key));
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getCurrentDbYearEntries");
+  ipcMain.handle<IEvidAPI>("getCurrentDbYearEntries", async (_event, ...[yearId]) => {
+    return fakeDb[yearId as number].entries;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("changeYearEntry");
+  ipcMain.handle<IEvidAPI>("changeYearEntry", async (_event, ...[yearId, entryId, entryName]) => {
+    fakeDb[yearId as number].entries[entryId as number].name = entryName;
+    fakeDbModified = true;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("newYearEntry");
+  ipcMain.handle<IEvidAPI>("newYearEntry", async (_event, ...[yearId, entryType]) => {
+    const evidYear = fakeDb[yearId as number];
+    const newEntryId = 1 + Object.entries(evidYear.entries)
+            .map(([entryId]) => Number(entryId))
+            .reduce((a, b) => Math.max(a, b), 0);
+    const newEntry: Entry = {type: entryType as EntryType, name: "New Entry", order: newEntryId};
+    evidYear.entries[newEntryId] = newEntry;
+    fakeDbModified = true;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("changeEntriesOrder");
+  ipcMain.handle<IEvidAPI>("changeEntriesOrder", async (_event, ...[yearId, entriesOrder]) => {
+    const yearEntries = fakeDb[yearId as number].entries;
+    (entriesOrder as IEntryOrder[]).forEach((entryOrder) => yearEntries[entryOrder.entryId].order = entryOrder.order);
+    fakeDbModified = true;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getYearEntrySum");
+  ipcMain.handle<IEvidAPI>("getYearEntrySum", async (_event, ...[yearId, entryId]) => {
+    const yearMonths = fakeDb[yearId as number].months;
+    return Object.entries(yearMonths)
+      .map(([, month]) => month[entryId as number] || 0)
+      .reduce((partialSum, a) => partialSum + a, 0);
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("deleteYearEntry");
+  ipcMain.handle<IEvidAPI>("deleteYearEntry", async (_event, ...[yearId, entryId]) => {
+    const yearEntries = fakeDb[yearId as number].entries;
+    delete yearEntries[entryId as number];
+    const yearMonths = fakeDb[yearId as number].months;
+    Object.entries(yearMonths).forEach(([, month]) => delete month[entryId as number]);
+    fakeDbModified = true;
   });
 }
 

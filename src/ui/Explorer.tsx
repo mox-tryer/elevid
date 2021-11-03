@@ -2,28 +2,27 @@
 import { cloneDeep } from "lodash-es";
 import * as React from 'react';
 import { useState } from 'react';
-import { TreeNodeInfo, Tree, Button } from "@blueprintjs/core";
-import { EvidDb, EvidYear, MonthEntries, MonthId, orderToMonth, monthLabel } from "../model";
+import { TreeNodeInfo, Tree, Button, AnchorButton } from "@blueprintjs/core";
+import { MonthId, orderToMonth, monthLabel } from "../model";
+import { Tooltip2 } from "@blueprintjs/popover2";
 
 
 //type NodePath = number[];
 
 type NodeData = {
     yearId: number;
-    year: EvidYear;
     monthId?: MonthId;
-    month?: MonthEntries;
 }
 
-function createMonthTreeNodes(year: number, evidYear: EvidYear, treeState: TreeState): TreeNodeInfo<NodeData>[] {
+function createMonthTreeNodes(yearId: number, treeState: TreeState): TreeNodeInfo<NodeData>[] {
     return Array(12).fill(0).map((_, idx) => {
-        const nodeId = year * 100 + (idx + 1);
+        const nodeId = yearId * 100 + (idx + 1);
         const monthId = orderToMonth(idx + 1);
         const nodeState = treeState[nodeId];
         const node: TreeNodeInfo<NodeData> = {
             id: nodeId,
             label: monthLabel(monthId),
-            nodeData: { yearId: year, year: evidYear, monthId: monthId, month: evidYear.months[monthId]},
+            nodeData: { yearId: yearId, monthId: monthId},
             isExpanded: nodeState?.isExpanded,
             isSelected: nodeState?.isSelected
             //icon: "moon"
@@ -32,8 +31,8 @@ function createMonthTreeNodes(year: number, evidYear: EvidYear, treeState: TreeS
     });
 }
 
-function dbToTreeNodes(db: EvidDb, treeState: TreeState): TreeNodeInfo<NodeData>[] {
-    if (db == null) {
+function dbToTreeNodes(dbYears: number[], treeState: TreeState): TreeNodeInfo<NodeData>[] {
+    if (dbYears == null) {
         return [{
             id: -1,
             label: "Loading...",
@@ -41,17 +40,16 @@ function dbToTreeNodes(db: EvidDb, treeState: TreeState): TreeNodeInfo<NodeData>
         }];
     }
 
-    const nodes: TreeNodeInfo<NodeData>[] = Object.entries(db)
-        .sort(([yearStr1], [yearStr2]) => Number(yearStr1) - Number(yearStr2))
-        .map(([yearStr, evidYear]) => {
-            const year = Number(yearStr);
-            const nodeState = treeState[year];
+    const nodes: TreeNodeInfo<NodeData>[] = dbYears
+        .sort((yearId1, yearId2) => yearId1 - yearId2)
+        .map((yearId) => {
+            const nodeState = treeState[yearId];
             const yearNode: TreeNodeInfo<NodeData> = {
-                id: year,
-                label: yearStr,
-                nodeData: { yearId: year, year: evidYear},
+                id: yearId,
+                label: yearId.toString(),
+                nodeData: { yearId: yearId},
                 icon: "calendar",
-                childNodes: createMonthTreeNodes(year, evidYear, treeState),
+                childNodes: createMonthTreeNodes(yearId, treeState),
                 isExpanded: nodeState?.isExpanded,
                 isSelected: nodeState?.isSelected
             };
@@ -82,14 +80,28 @@ function changeTreeState(oldTreeState: TreeState, nodeId: number, nodeChange: (n
 
 export function AddYearButton(): React.ReactElement {
     return (
-        <Button className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
+        <Tooltip2 content={"Pridať nový rok"}>
+            <Button className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
+        </Tooltip2>
+    );
+}
+
+export interface ISaveDbButtonProps {
+    dbModified: boolean;
+}
+
+export function SaveDbButton(props: ISaveDbButtonProps): React.ReactElement {
+    return (
+        <Tooltip2 content={"Uložiť databázu"}>
+            <AnchorButton disabled={!props.dbModified} className="bp3-minimal" icon="floppy-disk" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
+        </Tooltip2>
     );
 }
 
 export interface IExplorerProps {
-    db: EvidDb,
-    onYearSelected?: (year: EvidYear, yearId: number) => void,
-    onMonthSelected?: (month: MonthEntries, year: EvidYear, monthId: MonthId, yearId: number) => void
+    dbYears: number[],
+    onYearSelected?: (yearId: number) => void,
+    onMonthSelected?: (yearId: number, monthId: MonthId) => void
 }
 
 export function Explorer(props: IExplorerProps): React.ReactElement {
@@ -97,13 +109,13 @@ export function Explorer(props: IExplorerProps): React.ReactElement {
 
     const handleNodeClick = (node: TreeNodeInfo<NodeData>) => {
             setTreeState(changeTreeState(treeState, node.id as number, (node) => node.isSelected = true, (node) => node.isSelected = false));
-            if (!node.nodeData?.month && node.nodeData?.year) {
+            if (!node.nodeData?.monthId && node.nodeData?.yearId) {
                 if (props.onYearSelected) {
-                    props.onYearSelected(node.nodeData.year, node.nodeData.yearId);
+                    props.onYearSelected(node.nodeData.yearId);
                 }
-            } else if (node.nodeData.year && node.nodeData.month) {
+            } else if (node.nodeData.yearId && node.nodeData.monthId) {
                 if (props.onMonthSelected) {
-                    props.onMonthSelected(node.nodeData.month, node.nodeData.year, node.nodeData.monthId, node.nodeData.yearId);
+                    props.onMonthSelected(node.nodeData.yearId, node.nodeData.monthId);
                 }
             }
         };
@@ -118,7 +130,7 @@ export function Explorer(props: IExplorerProps): React.ReactElement {
 
     return (
         <Tree<NodeData>
-            contents={dbToTreeNodes(props.db, treeState)}
+            contents={dbToTreeNodes(props.dbYears, treeState)}
             onNodeCollapse={handleNodeCollapse}
             onNodeExpand={handleNodeExpand}
             onNodeClick={handleNodeClick}

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Column, Cell, Table2, Utils, SelectionModes, EditableCell2, Region } from "@blueprintjs/table";
-import { EvidYear, Entry, EntryType, MonthId } from '../model';
+import { Entry, EntryType, YearEntries } from '../model';
 import { AnchorButton, Button, ButtonGroup, Tab, Tabs } from '@blueprintjs/core';
 
 type EntryRow = {
@@ -9,41 +9,37 @@ type EntryRow = {
 }
 
 interface IEntryTableProps {
-    year: EvidYear;
+    yearEntries: YearEntries;
     entryType: EntryType;
+    onEntryNameChange: (entryId: number, entryName: string) => void;
+    onNewEntry: (entryType: EntryType) => void;
+    onChangeEntriesOrder: (orders: {entryId: number, order: number}[]) => void;
+    onEntryDelete: (entryId: number) => void;
 }
 
 function EntryTable(props: IEntryTableProps) {
-    const entries = Object.entries(props.year.entries)
+    const entryRows = Object.entries(props.yearEntries || {})
         .filter(([, entry]) => entry.type == props.entryType)
         .map(([entryIdStr, entry]) => { return { entryId: Number(entryIdStr), entry: entry } as EntryRow; })
         .sort((a, b) => a.entry.order - b.entry.order);
-
-    const [dataVersion, setDataVersion] = React.useState(0);
 
     const handleRowsReordered = (oldIndex: number, newIndex: number, length: number) => {
         if (oldIndex === newIndex) {
             return;
         }
-        Utils.reorderArray(entries, oldIndex, newIndex, length).forEach((entry, i) => entry.entry.order = i + 1);
-        setDataVersion(dataVersion + 1); // force rerender
+
+        const orders = entryRows.map((row) => { const e = {entryId: row.entryId, order: row.entry.order}; return e });
+        Utils.reorderArray(orders, oldIndex, newIndex, length).forEach((entry, i) => entry.order = i + 1);
+        props.onChangeEntriesOrder(orders);
     };
 
     const entryNameSetter = (rowIndex: number) => {
-        const entry = entries[rowIndex].entry;
+        const entryRow = entryRows[rowIndex];
 
         return (value: string) => {
-            entry.name = value;
+            //entry.name = value;
+            props.onEntryNameChange(entryRow.entryId, value);
         };
-    };
-
-    const entryAdder = () => {
-        const newEntryId = 1 + Object.entries(props.year.entries)
-            .map(([entryId]) => Number(entryId))
-            .reduce((a, b) => Math.max(a, b), 0);
-        const newEntry: Entry = {type: props.entryType, name: "New Entry", order: newEntryId};
-        props.year.entries[newEntryId] = newEntry;
-        setDataVersion(dataVersion + 1); // force rerender
     };
 
     const [selection, setSelection] = React.useState([] as Region[]);
@@ -53,33 +49,17 @@ function EntryTable(props: IEntryTableProps) {
             return;
         }
         const [rowId] = selection[0].rows;
-        const entryId = entries[rowId].entryId;
-        const entry = entries[rowId].entry;
-
-        let monthId: MonthId;
-        let totalSum = 0
-        for (monthId in props.year.months) {
-            const value = props.year.months[monthId][entryId];
-            if (value) {
-                totalSum += value;
-            }
-        }
-
-        // vypytat potvrdenie, ci naozaj vymazat polozku ak je totalSum > 0 zobrazit velke upozornenie aj s prislusnou sumou
-        // pozriet ako sa robia dialogy...
-        //todo("dokoncit!");
-        //window.evidAPI.invoke.dbgLogCurrentDb();
-        todo("CELE PREROBIT: nemozem potiahnut celu DB a tu ju menit... vsetko musi ist cez API!");
-        // App vlastne musi handlovat vsetky zmeny a riesit ich cez zavolanie zmeny v hlavnom procese a po skonceni zavolat reload
+        const entryId = entryRows[rowId].entryId;
+        props.onEntryDelete(entryId);
     };
 
     return (
         <div>
             <ButtonGroup fill={false}>
-                <Button icon="add" onClick={entryAdder} />
+                <Button icon="add" onClick={() => props.onNewEntry(props.entryType)} />
                 <AnchorButton icon="delete" disabled={selection.length == 0} onClick={entryDeleter} />
             </ButtonGroup>
-            <Table2 numRows={entries.length}
+            <Table2 numRows={entryRows.length}
                     enableRowHeader={true}
                     enableRowReordering={true}
                     enableMultipleSelection={false}
@@ -87,23 +67,50 @@ function EntryTable(props: IEntryTableProps) {
                     enableRowResizing={false}
                     onRowsReordered={handleRowsReordered}
                     onSelection={(region) => setSelection(region)}>
-                <Column name="Id" cellRenderer={(rowId) => <Cell>{entries[rowId].entryId}</Cell>} />
-                <Column name="Name" cellRenderer={(rowId) => <EditableCell2 value={entries[rowId].entry.name} onConfirm={entryNameSetter(rowId)} />} />
-                <Column name="Order" cellRenderer={(rowId) => <Cell>{entries[rowId].entry.order}</Cell>} />
+                <Column name="Id" cellRenderer={(rowId) => <Cell>{entryRows[rowId].entryId}</Cell>} />
+                <Column name="Name" cellRenderer={(rowId) => <EditableCell2 value={entryRows[rowId].entry.name} onConfirm={entryNameSetter(rowId)} />} />
+                <Column name="Order" cellRenderer={(rowId) => <Cell>{entryRows[rowId].entry.order}</Cell>} />
             </Table2>
         </div>
     );
 }
 
 export interface IYearEditorProps {
-    year: EvidYear
+    yearId: number;
+    yearEntries: YearEntries;
+    onEntryNameChange: (yearId: number, entryId: number, entryName: string) => void;
+    onNewEntry: (yearId: number, entryType: EntryType) => void;
+    onChangeEntriesOrder: (yearId: number, orders: {entryId: number, order: number}[]) => void;
+    onEntryDelete: (yearId: number, entryId: number) => void;
 }
 
 export function YearEditor(props: IYearEditorProps): React.ReactElement {
     return (
         <Tabs id="yearEditor" renderActiveTabPanelOnly={true}>
-            <Tab id="expenses" title="Položky: Výdavky" panel={<EntryTable key="yearEditor-expenses-table" year={props.year} entryType={"expense"} />} />
-            <Tab id="incomes" title="Položky: Príjmy" panel={<EntryTable key="yearEditor-incomes-table" year={props.year} entryType={"income"} />} />
+            <Tab id="expenses"
+                title="Položky: Výdavky"
+                panel={<EntryTable
+                            key="yearEditor-expenses-table"
+                            yearEntries={props.yearEntries}
+                            entryType={"expense"} 
+                            onEntryNameChange={(entryId, entryName) => props.onEntryNameChange(props.yearId, entryId, entryName)}
+                            onNewEntry={(entryType) => props.onNewEntry(props.yearId, entryType)}
+                            onChangeEntriesOrder={(orders) => props.onChangeEntriesOrder(props.yearId, orders)}
+                            onEntryDelete={(entryId) => props.onEntryDelete(props.yearId, entryId)}
+                        />}
+                />
+            <Tab id="incomes"
+                title="Položky: Príjmy"
+                panel={<EntryTable
+                            key="yearEditor-incomes-table"
+                            yearEntries={props.yearEntries}
+                            entryType={"income"} 
+                            onEntryNameChange={(entryId, entryName) => props.onEntryNameChange(props.yearId, entryId, entryName)}
+                            onNewEntry={(entryType) => props.onNewEntry(props.yearId, entryType)}
+                            onChangeEntriesOrder={(orders) => props.onChangeEntriesOrder(props.yearId, orders)}
+                            onEntryDelete={(entryId) => props.onEntryDelete(props.yearId, entryId)}
+                        />}
+                />
             <Tab id="report" title="Ročný výpis" panel={<span>todo</span>} />
         </Tabs>
     );

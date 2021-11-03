@@ -3,7 +3,7 @@ import { ipcMain } from 'electron-typescript-ipc';
 import { IEntryOrder, IEvidAPI } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
-import { Entry, EntryType, EvidDb } from './model';
+import { Entry, EntryType, EvidDb, YearMonths } from './model';
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -81,6 +81,12 @@ const fakeDb: EvidDb = {
 
 let fakeDbModified = false;
 
+function entrySum(yearMonths: YearMonths, entryId: number) {
+    return Object.entries(yearMonths)
+      .map(([, month]) => month[entryId] || 0)
+      .reduce((partialSum, a) => partialSum + a, 0);
+}
+
 function installAPI(mainWindow: BrowserWindow) {
   ipcMain.removeHandler<IEvidAPI>("showOpenFile");
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -97,12 +103,6 @@ function installAPI(mainWindow: BrowserWindow) {
       ]
     });
     return openResult.canceled ? null : openResult.filePaths[0];
-  });
-
-  ipcMain.removeHandler<IEvidAPI>("getCurrentDb");
-  ipcMain.handle<IEvidAPI>("getCurrentDb", async () => {
-    console.log("returning fakeDb");
-    return fakeDb;
   });
 
   ipcMain.removeHandler<IEvidAPI>("dbgLogCurrentDb");
@@ -142,7 +142,7 @@ function installAPI(mainWindow: BrowserWindow) {
     const newEntryId = 1 + Object.entries(evidYear.entries)
             .map(([entryId]) => Number(entryId))
             .reduce((a, b) => Math.max(a, b), 0);
-    const newEntry: Entry = {type: entryType as EntryType, name: "New Entry", order: newEntryId};
+    const newEntry: Entry = {type: entryType as EntryType, name: "Nová položka", order: newEntryId};
     evidYear.entries[newEntryId] = newEntry;
     fakeDbModified = true;
   });
@@ -156,10 +156,7 @@ function installAPI(mainWindow: BrowserWindow) {
 
   ipcMain.removeHandler<IEvidAPI>("getYearEntrySum");
   ipcMain.handle<IEvidAPI>("getYearEntrySum", async (_event, ...[yearId, entryId]) => {
-    const yearMonths = fakeDb[yearId as number].months;
-    return Object.entries(yearMonths)
-      .map(([, month]) => month[entryId as number] || 0)
-      .reduce((partialSum, a) => partialSum + a, 0);
+    return entrySum(fakeDb[yearId as number].months, entryId as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("deleteYearEntry");
@@ -169,6 +166,15 @@ function installAPI(mainWindow: BrowserWindow) {
     const yearMonths = fakeDb[yearId as number].months;
     Object.entries(yearMonths).forEach(([, month]) => delete month[entryId as number]);
     fakeDbModified = true;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getYearSums");
+  ipcMain.handle<IEvidAPI>("getYearSums", async (_event, ...[yearId]) => {
+    const yearEntries = fakeDb[yearId as number].entries;
+    return Object.entries(yearEntries)
+      .map(([entryId, entry]) => {
+        return {entry: entry, sum: entrySum(fakeDb[yearId as number].months, Number(entryId))};
+      });
   });
 }
 

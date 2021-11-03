@@ -2,11 +2,8 @@ import * as React from 'react';
 import { Column, Cell, Table2, Utils, SelectionModes, EditableCell2, Region } from "@blueprintjs/table";
 import { Entry, EntryType, YearEntries } from '../model';
 import { AnchorButton, Button, ButtonGroup, Tab, Tabs } from '@blueprintjs/core';
-
-type EntryRow = {
-    entryId: number;
-    entry: Entry;
-}
+import { IEntrySum } from './api';
+import { Tooltip2 } from '@blueprintjs/popover2';
 
 interface IEntryTableProps {
     yearEntries: YearEntries;
@@ -18,6 +15,11 @@ interface IEntryTableProps {
 }
 
 function EntryTable(props: IEntryTableProps) {
+    type EntryRow = {
+        entryId: number;
+        entry: Entry;
+    }
+    
     const entryRows = Object.entries(props.yearEntries || {})
         .filter(([, entry]) => entry.type == props.entryType)
         .map(([entryIdStr, entry]) => { return { entryId: Number(entryIdStr), entry: entry } as EntryRow; })
@@ -56,8 +58,12 @@ function EntryTable(props: IEntryTableProps) {
     return (
         <div>
             <ButtonGroup fill={false}>
-                <Button icon="add" onClick={() => props.onNewEntry(props.entryType)} />
-                <AnchorButton icon="delete" disabled={selection.length == 0} onClick={entryDeleter} />
+                <Tooltip2 content={"Pridať položku"}>
+                    <Button icon="add" onClick={() => props.onNewEntry(props.entryType)} />
+                </Tooltip2>
+                <Tooltip2 content={"Odstrániť položku"}>
+                    <AnchorButton icon="delete" disabled={selection.length == 0} onClick={entryDeleter} />
+                </Tooltip2>
             </ButtonGroup>
             <Table2 numRows={entryRows.length}
                     enableRowHeader={true}
@@ -68,8 +74,64 @@ function EntryTable(props: IEntryTableProps) {
                     onRowsReordered={handleRowsReordered}
                     onSelection={(region) => setSelection(region)}>
                 <Column name="Id" cellRenderer={(rowId) => <Cell>{entryRows[rowId].entryId}</Cell>} />
-                <Column name="Name" cellRenderer={(rowId) => <EditableCell2 value={entryRows[rowId].entry.name} onConfirm={entryNameSetter(rowId)} />} />
-                <Column name="Order" cellRenderer={(rowId) => <Cell>{entryRows[rowId].entry.order}</Cell>} />
+                <Column name="Názov" cellRenderer={(rowId) => <EditableCell2 value={entryRows[rowId].entry.name} onConfirm={entryNameSetter(rowId)} />} />
+                <Column name="Poradie" cellRenderer={(rowId) => <Cell>{entryRows[rowId].entry.order}</Cell>} />
+            </Table2>
+        </div>
+    );
+}
+
+interface IYearReportProps {
+    sums: IEntrySum[]
+}
+
+function YearReport(props: IYearReportProps) {
+    type ReportRow = {
+        entry: Entry;
+        total: boolean;
+        sum: number;
+    };
+
+    const rows = (props.sums || [])
+        .map((entrySum) => { return { ...entrySum, total: false} as ReportRow})
+        .sort((a, b) => {
+            if (a.entry.type == b.entry.type) {
+                return a.entry.order - b.entry.order;
+            } else {
+                if (a.entry.type == "expense") {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+        });
+    function entriesSum(entryType: EntryType) {
+        return props.sums
+            .filter((entrySum) => entrySum.entry.type == entryType)
+            .map((entrySum) => entrySum.sum)
+            .reduce((totalSum, a) => totalSum + a, 0);
+    }
+    const totalIncome = entriesSum("income");
+    const totalExpense = entriesSum("expense");
+    const totalSavings = totalIncome - totalExpense;
+
+    rows.push({entry: {name: "Výdavky", type: "expense", order: 1000}, total: true, sum: totalExpense});
+    rows.push({entry: {name: "Úspory", type: "income", order: 2000}, total: true, sum: totalSavings});
+
+    return (
+        <div>
+            <ButtonGroup fill={false}>
+                <Tooltip2 content={"Vytlačiť"}>
+                    <Button icon="print" />
+                </Tooltip2>
+            </ButtonGroup>
+            <Table2 numRows={rows.length}
+                    enableRowHeader={true}
+                    enableMultipleSelection={false}
+                    selectionModes={SelectionModes.ROWS_AND_CELLS}
+                    enableRowResizing={false}>
+                <Column name="Názov" cellRenderer={(rowId) => <Cell intent={rows[rowId].total ? "primary" : "none"}>{rows[rowId].entry.name}</Cell>} />
+                <Column name="Suma" cellRenderer={(rowId) => <Cell intent={rows[rowId].total ? "primary" : "none"}>{rows[rowId].sum}</Cell>} />
             </Table2>
         </div>
     );
@@ -78,6 +140,7 @@ function EntryTable(props: IEntryTableProps) {
 export interface IYearEditorProps {
     yearId: number;
     yearEntries: YearEntries;
+    yearSums: IEntrySum[];
     onEntryNameChange: (yearId: number, entryId: number, entryName: string) => void;
     onNewEntry: (yearId: number, entryType: EntryType) => void;
     onChangeEntriesOrder: (yearId: number, orders: {entryId: number, order: number}[]) => void;
@@ -111,7 +174,7 @@ export function YearEditor(props: IYearEditorProps): React.ReactElement {
                             onEntryDelete={(entryId) => props.onEntryDelete(props.yearId, entryId)}
                         />}
                 />
-            <Tab id="report" title="Ročný výpis" panel={<span>todo</span>} />
+            <Tab id="report" title="Ročný výpis" panel={<YearReport key="yearEditor-report" sums={props.yearSums} />} />
         </Tabs>
     );
 }

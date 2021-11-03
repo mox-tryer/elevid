@@ -1,14 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron-typescript-ipc';
-import { EntryType, EvidDb, YearEntries } from './model';
-import { IEntryOrder, IEvidAPI } from './ui/api';
+import { EntryType, YearEntries } from './model';
+import { IEntryOrder, IEntrySum, IEvidAPI } from './ui/api';
 
 const api: IEvidAPI = {
   invoke: {
     showOpenFile: async (key: string) => {
       return await ipcRenderer.invoke<IEvidAPI>('showOpenFile', key) as string;
-    },
-    getCurrentDb: async () => {
-      return await ipcRenderer.invoke<IEvidAPI>("getCurrentDb") as EvidDb;
     },
     dbgLogCurrentDb: async () => {
       await ipcRenderer.invoke<IEvidAPI>("dbgLogCurrentDb");
@@ -36,6 +33,9 @@ const api: IEvidAPI = {
     },
     deleteYearEntry: async (yearId: number, entryId: number) => {
       await ipcRenderer.invoke<IEvidAPI>("deleteYearEntry", yearId, entryId);
+    },
+    getYearSums: async (yearId: number) => {
+      return await ipcRenderer.invoke<IEvidAPI>("getYearSums", yearId) as IEntrySum[];
     }
   },
   on: {

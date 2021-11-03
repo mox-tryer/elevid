@@ -10,7 +10,7 @@ import '@blueprintjs/icons/lib/css/blueprint-icons.css';
 import '@blueprintjs/table/lib/css/table.css';
 import '@blueprintjs/popover2/lib/css/blueprint-popover2.css';
 import { YearEditor } from './YearEditor';
-import { IEntryOrder } from './api';
+import { IEntryOrder, IEntrySum } from './api';
 import { Button, Callout, Classes, Dialog, Navbar } from '@blueprintjs/core';
 
 const mosaicToolbarControls = React.Children.toArray([<ExpandButton />]);
@@ -47,23 +47,35 @@ function YearEditorPanel(props: YearEditorPanelProps) {
   React.useEffect(() => {
     retrieveYearEntries(props.yearId);
   }, [props.yearId]);
+
+  const [yearSums, setYearSums] = React.useState(null as IEntrySum[]);
+  const retrieveYearSums = async (yearId: number) => {
+    const sums = await window.evidAPI.invoke.getYearSums(yearId);
+    setYearSums(sums);
+  }
+  React.useEffect(() => {
+    retrieveYearSums(props.yearId);
+  }, [props.yearId]);
   
   const changeEntryName = async (yearId: number, entryId: number, entryName: string) => {
     await window.evidAPI.invoke.changeYearEntry(yearId, entryId, entryName);
     props.onChange();
     retrieveYearEntries(yearId);
+    retrieveYearSums(yearId);
   };
 
   const entryAdder = async (yearId: number, entryType: EntryType) => {
     await window.evidAPI.invoke.newYearEntry(yearId, entryType);
     props.onChange();
     retrieveYearEntries(yearId);
+    retrieveYearSums(yearId);
   }
 
   const entriesReorder = async (yearId: number, entriesOrder: IEntryOrder[]) => {
     await window.evidAPI.invoke.changeEntriesOrder(yearId, entriesOrder);
     props.onChange();
     retrieveYearEntries(yearId);
+    retrieveYearSums(yearId);
   }
 
   type DeleteDialogState = {
@@ -116,6 +128,7 @@ function YearEditorPanel(props: YearEditorPanelProps) {
         <YearEditor 
             yearId={props.yearId}
             yearEntries={yearEntries}
+            yearSums={yearSums}
             onEntryNameChange={changeEntryName}
             onNewEntry={entryAdder}
             onChangeEntriesOrder={entriesReorder}
@@ -150,7 +163,7 @@ function EditorPanel(props: EditorPanelProps) {
     innerPanel = <YearEditorPanel yearId={selectedNode.yearId} onChange={props.onChange} />;
     title = `Editor: ${selectedNode.yearId}`;
   } else {
-    innerPanel = <span>Select item...</span>;
+    innerPanel = <span></span>;
     title = "Editor";
   }
 

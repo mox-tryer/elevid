@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron-typescript-ipc';
-import { EntryType, YearEntries } from './model';
+import { EntryType, MonthEntries, MonthId, YearEntries } from './model';
 import { IEntryOrder, IEntrySum, IEvidAPI } from './ui/api';
 
 const api: IEvidAPI = {
@@ -13,11 +13,11 @@ const api: IEvidAPI = {
     isDbModified: async () => {
       return await ipcRenderer.invoke<IEvidAPI>("isDbModified") as boolean;
     },
-    getCurrentDbYears: async () => {
-      return await ipcRenderer.invoke<IEvidAPI>("getCurrentDbYears") as number[];
+    getYears: async () => {
+      return await ipcRenderer.invoke<IEvidAPI>("getYears") as number[];
     },
-    getCurrentDbYearEntries: async (yearId: number) => {
-      return await ipcRenderer.invoke<IEvidAPI>("getCurrentDbYearEntries", yearId) as YearEntries;
+    getYearEntries: async (yearId: number) => {
+      return await ipcRenderer.invoke<IEvidAPI>("getYearEntries", yearId) as YearEntries;
     },
     changeYearEntry: async (yearId: number, entryId: number, entryName: string) => {
       await ipcRenderer.invoke<IEvidAPI>("changeYearEntry", yearId, entryId, entryName);
@@ -36,7 +36,16 @@ const api: IEvidAPI = {
     },
     getYearSums: async (yearId: number) => {
       return await ipcRenderer.invoke<IEvidAPI>("getYearSums", yearId) as IEntrySum[];
-    }
+    },
+    getMonthEntries: async (yearId: number, monthId: MonthId) => {
+      return await ipcRenderer.invoke<IEvidAPI>("getMonthEntries", yearId, monthId) as MonthEntries;
+    },
+    incrementMonthEntry: async (yearId: number, monthId: MonthId, entryId: number, value: number) => {
+      await ipcRenderer.invoke<IEvidAPI>("incrementMonthEntry", yearId, monthId, entryId, value);
+    },
+    setMonthEntry: async (yearId: number, monthId: MonthId, entryId: number, value: number) => {
+      await ipcRenderer.invoke<IEvidAPI>("setMonthEntry", yearId, monthId, entryId, value);
+    },
   },
   on: {
     showAlert: (listener) => {

@@ -3,7 +3,7 @@ import { ipcMain } from 'electron-typescript-ipc';
 import { IEntryOrder, IEvidAPI } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
-import { Entry, EntryType, EvidDb, YearMonths } from './model';
+import { Entry, EntryType, EvidDb, MonthId, YearMonths } from './model';
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -115,24 +115,24 @@ function installAPI(mainWindow: BrowserWindow) {
     return fakeDbModified;
   });
 
-  ipcMain.removeHandler<IEvidAPI>("getCurrentDbYears");
-  ipcMain.handle<IEvidAPI>("getCurrentDbYears", async () => {
+  ipcMain.removeHandler<IEvidAPI>("getYears");
+  ipcMain.handle<IEvidAPI>("getYears", async () => {
     return Object.entries(fakeDb).map(([key]) => Number(key));
   });
 
-  ipcMain.removeHandler<IEvidAPI>("getCurrentDbYears");
-  ipcMain.handle<IEvidAPI>("getCurrentDbYears", async () => {
+  ipcMain.removeHandler<IEvidAPI>("getYears");
+  ipcMain.handle<IEvidAPI>("getYears", async () => {
     return Object.entries(fakeDb).map(([key]) => Number(key));
   });
 
-  ipcMain.removeHandler<IEvidAPI>("getCurrentDbYearEntries");
-  ipcMain.handle<IEvidAPI>("getCurrentDbYearEntries", async (_event, ...[yearId]) => {
+  ipcMain.removeHandler<IEvidAPI>("getYearEntries");
+  ipcMain.handle<IEvidAPI>("getYearEntries", async (_event, ...[yearId]) => {
     return fakeDb[yearId as number].entries;
   });
 
   ipcMain.removeHandler<IEvidAPI>("changeYearEntry");
   ipcMain.handle<IEvidAPI>("changeYearEntry", async (_event, ...[yearId, entryId, entryName]) => {
-    fakeDb[yearId as number].entries[entryId as number].name = entryName;
+    fakeDb[yearId as number].entries[entryId as number].name = entryName as string;
     fakeDbModified = true;
   });
 
@@ -175,6 +175,28 @@ function installAPI(mainWindow: BrowserWindow) {
       .map(([entryId, entry]) => {
         return {entry: entry, sum: entrySum(fakeDb[yearId as number].months, Number(entryId))};
       });
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getMonthEntries");
+  ipcMain.handle<IEvidAPI>("getMonthEntries", async (_event, ...[yearId, monthId]) => {
+    return fakeDb[yearId as number].months[monthId as MonthId];
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("incrementMonthEntry");
+  ipcMain.handle<IEvidAPI>("incrementMonthEntry", async (_event, ...[yearId, monthId, entryId, value]) => {
+    const monthEntries = fakeDb[yearId as number].months[monthId as MonthId];
+    if (monthEntries[entryId as number]) {
+      monthEntries[entryId as number] += value;
+    } else {
+      monthEntries[entryId as number] = value;
+    }
+    fakeDbModified = true;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("setMonthEntry");
+  ipcMain.handle<IEvidAPI>("setMonthEntry", async (_event, ...[yearId, monthId, entryId, value]) => {
+    fakeDb[yearId as number].months[monthId as MonthId][entryId as number] = value;
+    fakeDbModified = true;
   });
 }
 

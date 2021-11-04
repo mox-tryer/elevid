@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Column, Cell, Table2, Utils, SelectionModes, EditableCell2, Region } from "@blueprintjs/table";
-import { Entry, EntryType, YearEntries } from '../model';
-import { AnchorButton, Button, ButtonGroup, Tab, Tabs } from '@blueprintjs/core';
-import { IEntrySum } from './api';
+import { Entry, EntryType, YearEntries } from '../../model';
+import { AnchorButton, Button, ButtonGroup, Classes, Tab, Tabs } from '@blueprintjs/core';
+import { IEntrySum } from '../api';
 import { Tooltip2 } from '@blueprintjs/popover2';
 
 interface IEntryTableProps {
@@ -131,7 +131,7 @@ function YearReport(props: IYearReportProps) {
                     selectionModes={SelectionModes.ROWS_AND_CELLS}
                     enableRowResizing={false}>
                 <Column name="Názov" cellRenderer={(rowId) => <Cell intent={rows[rowId].total ? "primary" : "none"}>{rows[rowId].entry.name}</Cell>} />
-                <Column name="Suma" cellRenderer={(rowId) => <Cell intent={rows[rowId].total ? "primary" : "none"}>{rows[rowId].sum}</Cell>} />
+                <Column name="Suma" cellRenderer={(rowId) => <Cell style={{textAlign: 'right'}} intent={rows[rowId].total ? "primary" : "none"}>{rows[rowId].sum.toFixed(2)}</Cell>} />
             </Table2>
         </div>
     );

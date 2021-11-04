@@ -1,5 +1,5 @@
 import { GetApiType } from 'electron-typescript-ipc';
-import { Entry, EntryType, YearEntries } from '../model';
+import { Entry, EntryType, MonthEntries, MonthId, YearEntries } from '../model';
 
 export type IEntryOrder = { entryId: number, order: number};
 
@@ -13,14 +13,17 @@ export type IEvidAPI = GetApiType<
     showOpenFile: (str: string) => Promise<string>,
     dbgLogCurrentDb: () => Promise<void>,
     isDbModified: () => Promise<boolean>,
-    getCurrentDbYears: () => Promise<number[]>,
-    getCurrentDbYearEntries: (yearId: number) => Promise<YearEntries>,
+    getYears: () => Promise<number[]>,
+    getYearEntries: (yearId: number) => Promise<YearEntries>,
     changeYearEntry: (yearId: number, entryId: number, entryName: string) => Promise<void>,
     newYearEntry: (yearId: number, entryType: EntryType) => Promise<void>,
     changeEntriesOrder: (yearId: number, entriesOrder: IEntryOrder[]) => Promise<void>,
     getYearEntrySum: (yearId: number, entryId: number) => Promise<number>,
     deleteYearEntry: (yearId: number, entryId: number) => Promise<void>,
     getYearSums: (yearId: number) => Promise<IEntrySum[]>,
+    getMonthEntries: (yearId: number, monthId: MonthId) => Promise<MonthEntries>,
+    incrementMonthEntry: (yearId: number, monthId: MonthId, entryId: number, value: number) => Promise<void>,
+    setMonthEntry: (yearId: number, monthId: MonthId, entryId: number, value: number) => Promise<void>,
   },
   {
     showAlert: (text: string, num: number) => Promise<void>;

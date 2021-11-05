@@ -54,6 +54,14 @@
                   "preload": {
                     "js": "./src/preload.ts"
                   }
+                },
+                {
+                  "html": "./src/print/index.html",
+                  "js": "./src/print/renderer.ts",
+                  "name": "print_window",
+                  "preload": {
+                    "js": "./src/print/preload.ts"
+                  }
                 }
               ]
             }

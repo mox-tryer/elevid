@@ -12,6 +12,7 @@ export type IEvidAPI = GetApiType<
   {
     showOpenFile: (str: string) => Promise<string>,
     dbgLogCurrentDb: () => Promise<void>,
+    contentRendered: () => Promise<void>,
     isDbModified: () => Promise<boolean>,
     getYears: () => Promise<number[]>,
     getYearEntries: (yearId: number) => Promise<YearEntries>,
@@ -24,6 +25,8 @@ export type IEvidAPI = GetApiType<
     getMonthEntries: (yearId: number, monthId: MonthId) => Promise<MonthEntries>,
     incrementMonthEntry: (yearId: number, monthId: MonthId, entryId: number, value: number) => Promise<void>,
     setMonthEntry: (yearId: number, monthId: MonthId, entryId: number, value: number) => Promise<void>,
+    printMonthReport: (yearId: number, monthId: MonthId) => Promise<void>,
+    printYearReport: (yearId: number) => Promise<void>,
   },
   {
     showAlert: (text: string, num: number) => Promise<void>;

@@ -38,6 +38,10 @@ export function MonthEditorPanel(props: IMonthEditorPanelProps): React.ReactElem
         props.onChange();
         retrieveMonthEntries(props.yearId, props.monthId);
     }
+
+    const printReport = async (yearId: number, monthId: MonthId) => {
+        await window.evidAPI.invoke.printMonthReport(yearId, monthId);
+    }
     
     return (
         <MonthEditor
@@ -47,6 +51,7 @@ export function MonthEditorPanel(props: IMonthEditorPanelProps): React.ReactElem
             monthEntries={monthEntries}
             onValueAdded={valueAdder}
             onValueSet={valueSetter}
+            onPrint={printReport}
         />
     );
 }

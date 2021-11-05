@@ -1,0 +1,99 @@
+body {
+    margin-top: 0px;
+    margin-left: 0px;
+    font-family: FreeSerif;
+}
+
+.report_table {
+    font-size: 19px;
+    margin: 15px;
+}
+
+.border_t2 {
+    border-top: #000000 2px solid;
+}
+
+.border_b2 {
+    border-bottom: #000000 2px solid;
+}
+
+.border_l2 {
+    border-left: #000000 2px solid;
+}
+
+.border_r2 {
+    border-right: #000000 2px solid;
+}
+
+.border_t1 {
+    border-top: #000000 1px solid;
+}
+
+.border_b1 {
+    border-bottom: #000000 1px solid;
+}
+
+.border_l1 {
+    border-left: #000000 1px solid;
+}
+
+.border_r1 {
+    border-right: #000000 1px solid;
+}
+
+
+.report_header {
+    font-size: 25px;
+    text-align: left;
+    padding-left: 7px;
+    padding-right: 7px;
+    margin-top: 6px;
+    margin-bottom: 0px;
+    
+    .border_t2();
+    .border_l2();
+    .border_r2();
+    .border_b1();
+}
+
+.report_entry_name {
+    text-align: left;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+
+    .border_l2();
+}
+
+.report_entry_value {
+    text-align: right;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-family: Monospace;
+    font-size: 17px;
+
+    .border_r2();
+}
+
+.report_total_expense_name {
+    .report_entry_name();
+    .border_t1();
+}
+
+.report_total_expense_value {
+    .report_entry_value();
+    .border_t1();
+}
+
+.report_savings_name {
+    .report_entry_name();
+    .border_b2();
+}
+
+.report_savings_value {
+    .report_entry_value();
+    .border_b2();
+}

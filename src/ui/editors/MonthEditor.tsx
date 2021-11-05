@@ -7,6 +7,7 @@ import { Tooltip2 } from '@blueprintjs/popover2';
 interface MonthReportProps {
     yearEntries: YearEntries;
     monthEntries: MonthEntries;
+    onPrint: () => void;
 }
 
 function MonthReport(props: MonthReportProps) {
@@ -49,7 +50,7 @@ function MonthReport(props: MonthReportProps) {
         <div>
             <ButtonGroup fill={false}>
                 <Tooltip2 content={"Vytlačiť"}>
-                    <Button icon="print" />
+                    <Button icon="print" onClick={() => props.onPrint()} />
                 </Tooltip2>
             </ButtonGroup>
             <Table2 numRows={rows.length}
@@ -246,6 +247,7 @@ export interface IMonthEditorProps {
     monthEntries: MonthEntries;
     onValueAdded: (yearId: number, monthId: MonthId, entryId: number, value: number) => void;
     onValueSet: (yearId: number, monthId: MonthId, entryId: number, value: number) => void;
+    onPrint: (yearId: number, monthId: MonthId) => void;
 }
 
 export function MonthEditor(props: IMonthEditorProps): React.ReactElement {
@@ -266,7 +268,14 @@ export function MonthEditor(props: IMonthEditorProps): React.ReactElement {
             />
             <Tab id="sumsReport"
                 title="Mesačný výpis"
-                panel={<MonthReport key="monthSumsReport" yearEntries={props.yearEntries} monthEntries={props.monthEntries} />}
+                panel={
+                    <MonthReport
+                        key="monthSumsReport"
+                        yearEntries={props.yearEntries}
+                        monthEntries={props.monthEntries}
+                        onPrint={() => props.onPrint(props.yearId, props.monthId)}
+                    />
+                }
             />
         </Tabs>
     );

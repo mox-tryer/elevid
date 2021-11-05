@@ -19,6 +19,11 @@ declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
+
+declare const PRINT_WINDOW_WEBPACK_ENTRY: string;
+
+declare const PRINT_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit();
@@ -85,6 +90,54 @@ function entrySum(yearMonths: YearMonths, entryId: number) {
     return Object.entries(yearMonths)
       .map(([, month]) => month[entryId] || 0)
       .reduce((partialSum, a) => partialSum + a, 0);
+}
+
+const monthReportPrintOptions: Electron.WebContentsPrintOptions = {
+  margins: {
+    marginType: "printableArea"
+  },
+  printBackground: false,
+  landscape: false,
+  pageSize: "A4"
+};
+
+const yearReportPrintOptions: Electron.WebContentsPrintOptions = {
+  margins: {
+    marginType: "printableArea"
+  },
+  printBackground: false,
+  landscape: true,
+  pageSize: "A4"
+};
+
+function printReport(type: "year" | "month", yearId: number, monthId?: MonthId) {
+  const printWindow = new BrowserWindow({
+    height: 1200,
+    width: 1600,
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: PRINT_WINDOW_PRELOAD_WEBPACK_ENTRY
+    },
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("contentRendered");
+  ipcMain.handle<IEvidAPI>("contentRendered", async () => {
+    printWindow.webContents.print((type == "year" ? yearReportPrintOptions : monthReportPrintOptions), () => printWindow.close());
+  });
+
+  printWindow.on("close", () => {
+    ipcMain.removeHandler<IEvidAPI>("contentRendered");
+  });
+
+  let queryString = "?type=" + type + "&yearId=" + yearId;
+  if (type == "month") {
+    queryString += "&monthId=" + monthId;
+  }
+
+  // and load the index.html of the app.
+  printWindow.loadURL(PRINT_WINDOW_WEBPACK_ENTRY + queryString);
 }
 
 function installAPI(mainWindow: BrowserWindow) {
@@ -197,6 +250,16 @@ function installAPI(mainWindow: BrowserWindow) {
   ipcMain.handle<IEvidAPI>("setMonthEntry", async (_event, ...[yearId, monthId, entryId, value]) => {
     fakeDb[yearId as number].months[monthId as MonthId][entryId as number] = value;
     fakeDbModified = true;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("printMonthReport");
+  ipcMain.handle<IEvidAPI>("printMonthReport", async (_event, ...[yearId, monthId]) => {
+    printReport("month", yearId as number, monthId as MonthId);
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("printYearReport");
+  ipcMain.handle<IEvidAPI>("printYearReport", async (_event, ...[yearId]) => {
+    printReport("year", yearId as number);
   });
 }
 

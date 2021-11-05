@@ -13,6 +13,7 @@
             "windows": {
               "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-forge-vscode-win.cmd"
             },
+            "runtimeArgs": ["tst"],
             "cwd": "${workspaceFolder}"
           }
     ]

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron-typescript-ipc';
-import { EntryType, MonthEntries, MonthId, YearEntries } from './model';
-import { IEntryOrder, IEntrySum, IEvidAPI } from './ui/api';
+import { EntryType, MonthEntries, MonthId, YearEntries, YearMonths } from './model';
+import { IEntryOrder, IEntrySum, IEvidAPI, IMonthSums } from './ui/api';
 
 const api: IEvidAPI = {
     invoke: {
@@ -54,7 +54,10 @@ const api: IEvidAPI = {
         },
         printYearReport: async (yearId: number) => {
             await ipcRenderer.invoke<IEvidAPI>("printYearReport", yearId);
-        }
+        },
+        getMonthsSums: async (yearId: number) => {
+            return await ipcRenderer.invoke<IEvidAPI>("getMonthsSums", yearId) as IMonthSums[];
+        },
     },
     on: {
         showAlert: (listener) => {

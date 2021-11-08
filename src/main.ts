@@ -1,9 +1,9 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import { ipcMain } from 'electron-typescript-ipc';
-import { IEntryOrder, IEvidAPI } from './ui/api';
+import { IEntryOrder, IEntrySum, IEvidAPI } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
-import { Entry, EntryType, EvidDb, MonthId, YearMonths } from './model';
+import { Entry, EntryType, EvidDb, MonthEntries, MonthId, monthToOrder, YearMonths } from './model';
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -122,6 +122,8 @@ function printReport(type: "year" | "month", yearId: number, monthId?: MonthId) 
     },
   });
 
+  console.log("printReport(" + type + ")");
+
   ipcMain.removeHandler<IEvidAPI>("contentRendered");
   ipcMain.handle<IEvidAPI>("contentRendered", async () => {
     printWindow.webContents.print((type == "year" ? yearReportPrintOptions : monthReportPrintOptions), () => printWindow.close());
@@ -226,7 +228,7 @@ function installAPI(mainWindow: BrowserWindow) {
     const yearEntries = fakeDb[yearId as number].entries;
     return Object.entries(yearEntries)
       .map(([entryId, entry]) => {
-        return {entry: entry, sum: entrySum(fakeDb[yearId as number].months, Number(entryId))};
+        return {entryId: Number(entryId), entry, sum: entrySum(fakeDb[yearId as number].months, Number(entryId))};
       });
   });
 
@@ -261,11 +263,56 @@ function installAPI(mainWindow: BrowserWindow) {
   ipcMain.handle<IEvidAPI>("printYearReport", async (_event, ...[yearId]) => {
     printReport("year", yearId as number);
   });
+
+  ipcMain.removeHandler<IEvidAPI>("getMonthsSums");
+  ipcMain.handle<IEvidAPI>("getMonthsSums", async (_event, ...[yearId]) => {
+    function monthEntriesToSums(monthId: MonthId, monthEntries: MonthEntries) {
+      return Object.entries(monthEntries)
+      .map(([entryIdStr, value]) => {
+        const entryId = Number(entryIdStr);
+        return {entryId, entry: entries[entryId], sum: value};
+      })
+      .sort((a, b) => {
+        if (a.entry.type == b.entry.type) {
+          return a.entry.order - b.entry.order;
+        } else {
+            if (a.entry.type == "expense") {
+                return -1;
+            } else {
+                return 1;
+            }
+        }
+      });
+    }
+
+    function entriesSum(sums: IEntrySum[], entryType: EntryType) {
+      return sums
+            .filter((row) => row.entry.type == entryType)
+            .map((row) => row.sum)
+            .reduce((totalSum, a) => totalSum + a, 0);
+    }
+    
+    const entries = fakeDb[yearId as number].entries;
+    const sums = Object.entries(fakeDb[yearId as number].months)
+      .map(([monthId, monthEntries]) => {
+        const monthSums = monthEntriesToSums(monthId as MonthId, monthEntries);
+        const totalIncome = entriesSum(monthSums, "income");
+        const totalExpense = entriesSum(monthSums, "expense");
+
+        return {
+              monthId: monthId as MonthId,
+              sums: monthSums,
+              totalIncome,
+              totalExpense
+        };
+      })
+      .sort((a, b) => monthToOrder(a.monthId) - monthToOrder(b.monthId));
+    return sums;
+  });
 }
 
 const createWindow = async (): Promise<void> => {
   const windowSettings = await settings.get("window") as WindowSettings | null;
-  //windowSettings = windowSettings || { height: 600, width: 800, maximize: false };
 
   // Create the browser window.
   const mainWindow = new BrowserWindow({

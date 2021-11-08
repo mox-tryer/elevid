@@ -4,8 +4,16 @@ import { Entry, EntryType, MonthEntries, MonthId, YearEntries } from '../model';
 export type IEntryOrder = { entryId: number, order: number};
 
 export type IEntrySum = {
+  entryId: number;
   entry: Entry;
   sum: number;
+};
+
+export type IMonthSums = {
+  monthId: MonthId;
+  sums: IEntrySum[];
+  totalExpense: number;
+  totalIncome: number;
 };
 
 export type IEvidAPI = GetApiType<
@@ -27,6 +35,7 @@ export type IEvidAPI = GetApiType<
     setMonthEntry: (yearId: number, monthId: MonthId, entryId: number, value: number) => Promise<void>,
     printMonthReport: (yearId: number, monthId: MonthId) => Promise<void>,
     printYearReport: (yearId: number) => Promise<void>,
+    getMonthsSums: (yearId: number) => Promise<IMonthSums[]>,
   },
   {
     showAlert: (text: string, num: number) => Promise<void>;

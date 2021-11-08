@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Column, Cell, Table2, Utils, SelectionModes, EditableCell2, Region } from "@blueprintjs/table";
 import { Entry, EntryType, YearEntries } from '../../model';
-import { AnchorButton, Button, ButtonGroup, Classes, Tab, Tabs } from '@blueprintjs/core';
+import { AnchorButton, Button, ButtonGroup, Tab, Tabs } from '@blueprintjs/core';
 import { IEntrySum } from '../api';
 import { Tooltip2 } from '@blueprintjs/popover2';
 
@@ -82,7 +82,8 @@ function EntryTable(props: IEntryTableProps) {
 }
 
 interface IYearReportProps {
-    sums: IEntrySum[]
+    sums: IEntrySum[];
+    onPrint: () => void;
 }
 
 function YearReport(props: IYearReportProps) {
@@ -122,7 +123,7 @@ function YearReport(props: IYearReportProps) {
         <div>
             <ButtonGroup fill={false}>
                 <Tooltip2 content={"Vytlačiť"}>
-                    <Button icon="print" />
+                    <Button icon="print" onClick={props.onPrint}/>
                 </Tooltip2>
             </ButtonGroup>
             <Table2 numRows={rows.length}
@@ -145,6 +146,7 @@ export interface IYearEditorProps {
     onNewEntry: (yearId: number, entryType: EntryType) => void;
     onChangeEntriesOrder: (yearId: number, orders: {entryId: number, order: number}[]) => void;
     onEntryDelete: (yearId: number, entryId: number) => void;
+    onPrint: (yearId: number) => void;
 }
 
 export function YearEditor(props: IYearEditorProps): React.ReactElement {
@@ -174,7 +176,7 @@ export function YearEditor(props: IYearEditorProps): React.ReactElement {
                             onEntryDelete={(entryId) => props.onEntryDelete(props.yearId, entryId)}
                         />}
                 />
-            <Tab id="report" title="Ročný výpis" panel={<YearReport key="yearEditor-report" sums={props.yearSums} />} />
+            <Tab id="report" title="Ročný výpis" panel={<YearReport key="yearEditor-report" sums={props.yearSums} onPrint={() => props.onPrint(props.yearId)} />} />
         </Tabs>
     );
 }

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { IEntrySum, IMonthSums } from '../ui/api';
 import { Entry, EntryType, MonthEntries, MonthId, monthLabel, YearEntries } from '../model';
 
 interface PrintMonthReportProps {
@@ -62,19 +63,19 @@ function PrintMonthReport(props: PrintMonthReportProps) {
 
         const rowComponents = rows.map((row) => (
             <tr key={"entry" + row.entryId}>
-                <td className="report_entry_name">{row.entry.name}</td>
-                <td className="report_entry_value">{row.sum.toFixed(2)}</td>
+                <td className="mreport_entry_name">{row.entry.name}</td>
+                <td className="mreport_entry_value">{row.sum.toFixed(2)}</td>
             </tr>
         ));
         
         window.evidAPI.invoke.contentRendered();
 
         return (
-            <table className="report_table" cellPadding="0" cellSpacing="0">
-                <tr key="header"><td colSpan={2} className="report_header"><b>{props.yearId} {monthLabel(props.monthId)}</b></td></tr>
+            <table className="mreport_table" cellPadding="0" cellSpacing="0">
+                <tr key="header"><td colSpan={2} className="mreport_header"><b>{props.yearId} {monthLabel(props.monthId)}</b></td></tr>
                 {rowComponents}
-                <tr key="totalExpense"><td className="report_total_expense_name">V&yacute;davky</td><td className="report_total_expense_value">{totalExpense.toFixed(2)}</td></tr>
-                <tr key="totalSavings"><td className="report_savings_name">&Uacute;spory</td><td className="report_savings_value">{totalSavings.toFixed(2)}</td></tr>
+                <tr key="totalExpense"><td className="mreport_total_expense_name">V&yacute;davky</td><td className="mreport_total_expense_value">{totalExpense.toFixed(2)}</td></tr>
+                <tr key="totalSavings"><td className="mreport_savings_name">&Uacute;spory</td><td className="mreport_savings_value">{totalSavings.toFixed(2)}</td></tr>
             </table>
         );
     } else {
@@ -87,7 +88,31 @@ interface PrintYearReportProps {
 }
 
 function PrintYearReport(props: PrintYearReportProps) {
-    return <div>{props.yearId}</div>;
+    const [yearSums, setYearSums] = React.useState(null as IEntrySum[]);
+    const retrieveYearSums = async (yearId: number) => {
+      const sums = await window.evidAPI.invoke.getYearSums(yearId);
+      setYearSums(sums);
+    }
+    React.useEffect(() => {
+      retrieveYearSums(props.yearId);
+    }, [props.yearId]);
+
+    const [monthsSums, setMonthsSums] = React.useState(null as IMonthSums[]);
+    const retrieveMonthsSums = async (yearId: number) => {
+      setMonthsSums(await window.evidAPI.invoke.getMonthsSums(yearId));
+    };
+    React.useEffect(() => {
+      retrieveMonthsSums(props.yearId);
+    }, [props.yearId]);
+
+    if (yearSums && monthsSums) {
+        window.evidAPI.invoke.contentRendered();
+
+        //todo("vyrobit report... nadpis... prva tabulka ma mesiace jan-jul, druha tabulka aug-dec a na konci este jedna, ktora vyzera byt oddelena, kde je cely rok");
+        return <div>{props.yearId}</div>;
+    } else {
+        return <div>{props.yearId}</div>;
+    }
 }
 
 function Print() {
@@ -104,6 +129,4 @@ function Print() {
 }
 
 const root = document.getElementById("root");
-ReactDOM.render(<Print />, root/*, async () => {
-    //await window.evidAPI.invoke.contentRendered();
-}*/);
+ReactDOM.render(<Print />, root);

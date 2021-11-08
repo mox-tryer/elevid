@@ -73,6 +73,10 @@ export function YearEditorPanel(props: IYearEditorPanelProps): React.ReactElemen
       await window.evidAPI.invoke.deleteYearEntry(yearId, entryId);
       setDeleteConfirmDialogState(closeDeleteConfirmDialogState);
     };
+
+    const printReport = async (yearId: number) => {
+      await window.evidAPI.invoke.printYearReport(yearId);
+  }
   
     if (yearEntries) {
       return (
@@ -104,6 +108,7 @@ export function YearEditorPanel(props: IYearEditorPanelProps): React.ReactElemen
               onNewEntry={entryAdder}
               onChangeEntriesOrder={entriesReorder}
               onEntryDelete={showDeleteConfirmDialog}
+              onPrint={printReport}
           />
         </>
       );

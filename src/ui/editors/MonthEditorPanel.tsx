@@ -3,6 +3,7 @@ import { MonthEntries, MonthId, YearEntries } from '../../model';
 import { MonthEditor } from './MonthEditor';
 
 export type IMonthEditorPanelProps = {
+    dbPath: string;
     yearId: number | undefined;
     monthId: MonthId | undefined;
     onChange: () => void;
@@ -16,7 +17,7 @@ export function MonthEditorPanel(props: IMonthEditorPanelProps): React.ReactElem
     };
     React.useEffect(() => {
       retrieveYearEntries(props.yearId);
-    }, [props.yearId]);
+    }, [props.yearId, props.dbPath]);
 
     const [monthEntries, setMonthEntries] = React.useState(null as MonthEntries);
     const retrieveMonthEntries = async (yearId: number, monthId: MonthId) => {
@@ -25,7 +26,7 @@ export function MonthEditorPanel(props: IMonthEditorPanelProps): React.ReactElem
     };
     React.useEffect(() => {
         retrieveMonthEntries(props.yearId, props.monthId);
-    }, [props.yearId, props.monthId]);
+    }, [props.yearId, props.monthId, props.dbPath]);
 
     const valueAdder = async (yearId: number, monthId: MonthId, entryId: number, value: number) => {
         await window.evidAPI.invoke.incrementMonthEntry(yearId, monthId, entryId, value);

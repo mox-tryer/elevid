@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron-typescript-ipc';
-import { EntryType, MonthEntries, MonthId, YearEntries, YearMonths } from './model';
-import { IEntryOrder, IEntrySum, IEvidAPI, IMonthSums } from './ui/api';
+import { EntryType, MonthEntries, MonthId, YearEntries } from './model';
+import { IEntryOrder, IEntrySum, IEvidAPI, IMonthSums, FileDialogResult } from './ui/api';
 
 const api: IEvidAPI = {
     invoke: {
@@ -15,6 +15,27 @@ const api: IEvidAPI = {
         },
         isDbModified: async () => {
             return await ipcRenderer.invoke<IEvidAPI>("isDbModified") as boolean;
+        },
+        isDbFileSet: async () => {
+            return await ipcRenderer.invoke<IEvidAPI>("isDbFileSet") as boolean;
+        },
+        saveDb: async () => {
+            await ipcRenderer.invoke<IEvidAPI>("saveDb");
+        },
+        saveDbAs: async (filePath: string, password: string) => {
+            await ipcRenderer.invoke<IEvidAPI>("saveDbAs", filePath, password);
+        },
+        showSaveDbDialog: async (defaultPath: string | undefined) => {
+            return await ipcRenderer.invoke<IEvidAPI>("showSaveDbDialog", defaultPath) as FileDialogResult;
+        },
+        openDb: async (filePath: string, password: string) => {
+            await ipcRenderer.invoke<IEvidAPI>("openDb", filePath, password);
+        },
+        showOpenDbDialog: async (defaultPath: string | undefined) => {
+            return await ipcRenderer.invoke<IEvidAPI>("showOpenDbDialog", defaultPath) as FileDialogResult;
+        },
+        getDbPath: async() => {
+            return await ipcRenderer.invoke<IEvidAPI>("getDbPath") as string;
         },
         getYears: async () => {
             return await ipcRenderer.invoke<IEvidAPI>("getYears") as number[];

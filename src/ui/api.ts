@@ -16,12 +16,24 @@ export type IMonthSums = {
   totalIncome: number;
 };
 
+export type FileDialogResult = {
+  canceled: boolean;
+  filePath?: string;
+}
+
 export type IEvidAPI = GetApiType<
   {
     showOpenFile: (str: string) => Promise<string>,
     dbgLogCurrentDb: () => Promise<void>,
     contentRendered: () => Promise<void>,
     isDbModified: () => Promise<boolean>,
+    isDbFileSet: () => Promise<boolean>,
+    saveDb: () => Promise<void>,
+    saveDbAs: (filePath: string, password: string) => Promise<void>,
+    showSaveDbDialog: (defaultPath: string | undefined) => Promise<FileDialogResult>,
+    openDb: (filePath: string, password: string) => Promise<void>,
+    showOpenDbDialog: (defaultPath: string | undefined) => Promise<FileDialogResult>,
+    getDbPath: () => Promise<string>,
     getYears: () => Promise<number[]>,
     getYearEntries: (yearId: number) => Promise<YearEntries>,
     changeYearEntry: (yearId: number, entryId: number, entryName: string) => Promise<void>,

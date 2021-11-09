@@ -1,9 +1,10 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import { ipcMain } from 'electron-typescript-ipc';
-import { IEntryOrder, IEntrySum, IEvidAPI } from './ui/api';
+import { IEntryOrder, IEvidAPI, FileDialogResult } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
-import { Entry, EntryType, EvidDb, MonthEntries, MonthId, monthToOrder, YearMonths } from './model';
+import { EntryType, MonthId } from './model';
+import { createFakeDb, CurrentDatabase, openDb } from './CurrentDatabase';
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -35,62 +36,7 @@ type WindowSettings = {
   maximized?: boolean
 }
 
-const fakeDb: EvidDb = {
-  1977: {
-    entries: {
-      1: {
-        name: "Vyplata",
-        type: "income",
-        order: 1
-      },
-      2: {
-        name: "Kreditka",
-        type: "expense",
-        order: 2
-      },
-      3: {
-        name: "Vynosy",
-        type: "income",
-        order: 3
-      },
-      5: {
-        name: "Potraviny",
-        type: "expense",
-        order: 5
-      }
-    },
-    months: {
-      jan: {
-        1: 1500,
-        2: 1200,
-      },
-      feb: {
-        1: 1500,
-        3: 800,
-        2: 1200,
-        5: 1200
-      },
-      mar: {},
-      apr: {},
-      may: {},
-      jun: {},
-      jul: {},
-      aug: {},
-      sep: {},
-      oct: {},
-      nov: {},
-      dec: {}
-    }
-  }
-}
-
-let fakeDbModified = false;
-
-function entrySum(yearMonths: YearMonths, entryId: number) {
-    return Object.entries(yearMonths)
-      .map(([, month]) => month[entryId] || 0)
-      .reduce((partialSum, a) => partialSum + a, 0);
-}
+let currentDatabase: CurrentDatabase = createFakeDb();
 
 const monthReportPrintOptions: Electron.WebContentsPrintOptions = {
   margins: {
@@ -151,7 +97,7 @@ function installAPI(mainWindow: BrowserWindow) {
       buttonLabel: "Otovit",
       filters: [
         { name: "JSON", extensions: ["json"] },
-        { name: "All files", extensions: ["*"]}
+        { name: "All files", extensions: ["*"] }
       ],
       properties: [
         "openFile"
@@ -162,96 +108,159 @@ function installAPI(mainWindow: BrowserWindow) {
 
   ipcMain.removeHandler<IEvidAPI>("dbgLogCurrentDb");
   ipcMain.handle<IEvidAPI>("dbgLogCurrentDb", async () => {
-    console.log(JSON.stringify(fakeDb, null, 2));
+    console.log(currentDatabase.toJSON());
   });
 
   ipcMain.removeHandler<IEvidAPI>("isDbModified");
   ipcMain.handle<IEvidAPI>("isDbModified", async () => {
-    return fakeDbModified;
+    return currentDatabase.isModified();
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("isDbFileSet");
+  ipcMain.handle<IEvidAPI>("isDbFileSet", async () => {
+    return currentDatabase.hasPath();
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("saveDb");
+  ipcMain.handle<IEvidAPI>("saveDb", async () => {
+    await currentDatabase.save();
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("saveDbAs");
+  ipcMain.handle<IEvidAPI>("saveDbAs", async (_event, ...[filePath, password]) => {
+    currentDatabase.setFile(filePath as string, password as string);
+    await currentDatabase.save();
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("showSaveDbDialog");
+  ipcMain.handle<IEvidAPI>("showSaveDbDialog", async (_event, ...[defaultPath]) => {
+    const saveResult = await dialog.showSaveDialog(mainWindow, {
+      title: "Evid Databáza",
+      defaultPath: defaultPath as string,
+      filters: [
+        { name: "Evid Database", extensions: ["evidb"] },
+        { name: "All files", extensions: ["*"] }
+      ],
+      properties: [
+        "createDirectory", "showOverwriteConfirmation"
+      ]
+    });
+
+    if (!saveResult.canceled) {
+      if (saveResult.filePath && !saveResult.filePath.includes(".")) {
+        saveResult.filePath += ".evidb";
+      }
+    }
+
+    return saveResult as FileDialogResult;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("openDb");
+  ipcMain.handle<IEvidAPI>("openDb", async (_event, ...[filePath, password]) => {
+    if (currentDatabase.isModified()) {
+      const opts = {
+        message: "Databáza nie je uložená. Naozaj otvoriť novú?",
+        title: "Otvoriť Databázu?",
+        type: "warning",
+        buttons: ["Áno", "Nie"],
+        cancelId: 1,
+        noLink: true,
+      };
+      const result = await dialog.showMessageBox(mainWindow, opts);
+      if (result.response != 0) {
+        return;
+      }
+    }
+    try {
+      const db = await openDb(filePath as string, password as string);
+      currentDatabase = db;
+    } catch {
+      const opts = {
+        message: "Chyba pri čitaní databázy.",
+        title: "Chyba",
+        type: "error",
+      };
+      await dialog.showMessageBox(mainWindow, opts);
+    }
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("showOpenDbDialog");
+  ipcMain.handle<IEvidAPI>("showOpenDbDialog", async (_event, ...[defaultPath]) => {
+    const dlgResult = await dialog.showOpenDialog(mainWindow, {
+      title: "Evid Databáza",
+      defaultPath: defaultPath as string,
+      filters: [
+        { name: "Evid Database", extensions: ["evidb"] },
+        { name: "All files", extensions: ["*"] }
+      ],
+      properties: [
+        "openFile"
+      ]
+    });
+
+    const openResult: FileDialogResult = { canceled: dlgResult.canceled, filePath: dlgResult.filePaths[0] };
+
+    return openResult;
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("getDbPath");
+  ipcMain.handle<IEvidAPI>("getDbPath", async () => {
+    return currentDatabase.getFile();
   });
 
   ipcMain.removeHandler<IEvidAPI>("getYears");
   ipcMain.handle<IEvidAPI>("getYears", async () => {
-    return Object.entries(fakeDb).map(([key]) => Number(key));
-  });
-
-  ipcMain.removeHandler<IEvidAPI>("getYears");
-  ipcMain.handle<IEvidAPI>("getYears", async () => {
-    return Object.entries(fakeDb).map(([key]) => Number(key));
+    return currentDatabase.getYears();
   });
 
   ipcMain.removeHandler<IEvidAPI>("getYearEntries");
   ipcMain.handle<IEvidAPI>("getYearEntries", async (_event, ...[yearId]) => {
-    return fakeDb[yearId as number].entries;
+    return currentDatabase.getYearEntries(yearId as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("changeYearEntry");
   ipcMain.handle<IEvidAPI>("changeYearEntry", async (_event, ...[yearId, entryId, entryName]) => {
-    fakeDb[yearId as number].entries[entryId as number].name = entryName as string;
-    fakeDbModified = true;
+    currentDatabase.changeYearEntry(yearId as number, entryId as number, entryName as string);
   });
 
   ipcMain.removeHandler<IEvidAPI>("newYearEntry");
   ipcMain.handle<IEvidAPI>("newYearEntry", async (_event, ...[yearId, entryType]) => {
-    const evidYear = fakeDb[yearId as number];
-    const newEntryId = 1 + Object.entries(evidYear.entries)
-            .map(([entryId]) => Number(entryId))
-            .reduce((a, b) => Math.max(a, b), 0);
-    const newEntry: Entry = {type: entryType as EntryType, name: "Nová položka", order: newEntryId};
-    evidYear.entries[newEntryId] = newEntry;
-    fakeDbModified = true;
+    currentDatabase.newYearEntry(yearId as number, entryType as EntryType);
   });
 
   ipcMain.removeHandler<IEvidAPI>("changeEntriesOrder");
   ipcMain.handle<IEvidAPI>("changeEntriesOrder", async (_event, ...[yearId, entriesOrder]) => {
-    const yearEntries = fakeDb[yearId as number].entries;
-    (entriesOrder as IEntryOrder[]).forEach((entryOrder) => yearEntries[entryOrder.entryId].order = entryOrder.order);
-    fakeDbModified = true;
+    currentDatabase.changeEntriesOrder(yearId as number, entriesOrder as IEntryOrder[]);
   });
 
   ipcMain.removeHandler<IEvidAPI>("getYearEntrySum");
   ipcMain.handle<IEvidAPI>("getYearEntrySum", async (_event, ...[yearId, entryId]) => {
-    return entrySum(fakeDb[yearId as number].months, entryId as number);
+    return currentDatabase.getYearEntrySum(yearId as number, entryId as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("deleteYearEntry");
   ipcMain.handle<IEvidAPI>("deleteYearEntry", async (_event, ...[yearId, entryId]) => {
-    const yearEntries = fakeDb[yearId as number].entries;
-    delete yearEntries[entryId as number];
-    const yearMonths = fakeDb[yearId as number].months;
-    Object.entries(yearMonths).forEach(([, month]) => delete month[entryId as number]);
-    fakeDbModified = true;
+    currentDatabase.deleteYearEntry(yearId as number, entryId as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("getYearSums");
   ipcMain.handle<IEvidAPI>("getYearSums", async (_event, ...[yearId]) => {
-    const yearEntries = fakeDb[yearId as number].entries;
-    return Object.entries(yearEntries)
-      .map(([entryId, entry]) => {
-        return {entryId: Number(entryId), entry, sum: entrySum(fakeDb[yearId as number].months, Number(entryId))};
-      });
+    return currentDatabase.getYearSums(yearId as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("getMonthEntries");
   ipcMain.handle<IEvidAPI>("getMonthEntries", async (_event, ...[yearId, monthId]) => {
-    return fakeDb[yearId as number].months[monthId as MonthId];
+    return currentDatabase.getMonthEntries(yearId as number, monthId as MonthId);
   });
 
   ipcMain.removeHandler<IEvidAPI>("incrementMonthEntry");
   ipcMain.handle<IEvidAPI>("incrementMonthEntry", async (_event, ...[yearId, monthId, entryId, value]) => {
-    const monthEntries = fakeDb[yearId as number].months[monthId as MonthId];
-    if (monthEntries[entryId as number]) {
-      monthEntries[entryId as number] += value;
-    } else {
-      monthEntries[entryId as number] = value;
-    }
-    fakeDbModified = true;
+    currentDatabase.incrementMonthEntry(yearId as number, monthId as MonthId, entryId as number, value as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("setMonthEntry");
   ipcMain.handle<IEvidAPI>("setMonthEntry", async (_event, ...[yearId, monthId, entryId, value]) => {
-    fakeDb[yearId as number].months[monthId as MonthId][entryId as number] = value;
-    fakeDbModified = true;
+    currentDatabase.setMonthEntry(yearId as number, monthId as MonthId, entryId as number, value as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("printMonthReport");
@@ -266,48 +275,7 @@ function installAPI(mainWindow: BrowserWindow) {
 
   ipcMain.removeHandler<IEvidAPI>("getMonthsSums");
   ipcMain.handle<IEvidAPI>("getMonthsSums", async (_event, ...[yearId]) => {
-    function monthEntriesToSums(monthId: MonthId, monthEntries: MonthEntries) {
-      return Object.entries(monthEntries)
-      .map(([entryIdStr, value]) => {
-        const entryId = Number(entryIdStr);
-        return {entryId, entry: entries[entryId], sum: value};
-      })
-      .sort((a, b) => {
-        if (a.entry.type == b.entry.type) {
-          return a.entry.order - b.entry.order;
-        } else {
-            if (a.entry.type == "expense") {
-                return -1;
-            } else {
-                return 1;
-            }
-        }
-      });
-    }
-
-    function entriesSum(sums: IEntrySum[], entryType: EntryType) {
-      return sums
-            .filter((row) => row.entry.type == entryType)
-            .map((row) => row.sum)
-            .reduce((totalSum, a) => totalSum + a, 0);
-    }
-    
-    const entries = fakeDb[yearId as number].entries;
-    const sums = Object.entries(fakeDb[yearId as number].months)
-      .map(([monthId, monthEntries]) => {
-        const monthSums = monthEntriesToSums(monthId as MonthId, monthEntries);
-        const totalIncome = entriesSum(monthSums, "income");
-        const totalExpense = entriesSum(monthSums, "expense");
-
-        return {
-              monthId: monthId as MonthId,
-              sums: monthSums,
-              totalIncome,
-              totalExpense
-        };
-      })
-      .sort((a, b) => monthToOrder(a.monthId) - monthToOrder(b.monthId));
-    return sums;
+    return currentDatabase.getMonthsSums(yearId as number);
   });
 }
 
@@ -341,7 +309,22 @@ const createWindow = async (): Promise<void> => {
     }
   });
 
-  mainWindow.on("close", () => {
+  mainWindow.on("close", (e) => {
+    if (currentDatabase.isModified()) {
+      const opts = {
+        message: "Databáza nie je uložená. Naozaj skončiť?",
+        title: "Skončiť?",
+        type: "warning",
+        buttons: ["Áno", "Nie"],
+        cancelId: 1,
+        noLink: true,
+      };
+      if (dialog.showMessageBoxSync(mainWindow, opts) != 0) {
+        e.preventDefault();
+        return;
+      }
+    }
+
     const windowSettings: WindowSettings = {
       height: mainWindow.getBounds().height,
       width: mainWindow.getBounds().width,

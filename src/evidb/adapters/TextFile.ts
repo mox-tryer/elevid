@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { Writer } from "steno/lib";
+import { Writer } from "./AsyncWriter";
 
 import { Adapter } from '../EviDb';
 
@@ -45,6 +45,11 @@ export class TextFile implements Adapter<string> {
     }
 
     async write(str: string): Promise<void> {
+        try {
+            await fs.promises.copyFile(this.filename, this.filename + ".bkp");
+        } catch {
+            console.error("cannot make backup copy");
+        }
         const encStr = await this.encoder.encode(str);
         return this.writer.write(encStr);
     }

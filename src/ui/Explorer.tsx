@@ -2,7 +2,7 @@
 import { cloneDeep } from "lodash-es";
 import * as React from 'react';
 import { useState } from 'react';
-import { TreeNodeInfo, Tree, Button, AnchorButton } from "@blueprintjs/core";
+import { TreeNodeInfo, Tree, Button } from "@blueprintjs/core";
 import { MonthId, orderToMonth, monthLabel } from "../model";
 import { Tooltip2 } from "@blueprintjs/popover2";
 
@@ -82,18 +82,6 @@ export function AddYearButton(): React.ReactElement {
     return (
         <Tooltip2 content={"Pridať nový rok"}>
             <Button className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
-        </Tooltip2>
-    );
-}
-
-export interface ISaveDbButtonProps {
-    dbModified: boolean;
-}
-
-export function SaveDbButton(props: ISaveDbButtonProps): React.ReactElement {
-    return (
-        <Tooltip2 content={"Uložiť databázu"}>
-            <AnchorButton disabled={!props.dbModified} className="bp3-minimal" icon="floppy-disk" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
         </Tooltip2>
     );
 }

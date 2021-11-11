@@ -73,7 +73,6 @@ function EntryTable(props: IEntryTableProps) {
                     enableRowResizing={false}
                     onRowsReordered={handleRowsReordered}
                     onSelection={(region) => setSelection(region)}>
-                <Column name="Id" cellRenderer={(rowId) => <Cell>{entryRows[rowId].entryId}</Cell>} />
                 <Column name="Názov" cellRenderer={(rowId) => <EditableCell2 value={entryRows[rowId].entry.name} onConfirm={entryNameSetter(rowId)} />} />
                 <Column name="Poradie" cellRenderer={(rowId) => <Cell>{entryRows[rowId].entry.order}</Cell>} />
             </Table2>

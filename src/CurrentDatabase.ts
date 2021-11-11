@@ -69,8 +69,46 @@ export class CurrentDatabase {
         return this.modified;
     }
 
+    public addNewYear(yearId: number): void {
+        if (!(yearId in this.evidDb)) {
+            this.evidDb[yearId] = {
+                entries: {},
+                months: {
+                    jan: {},
+                    feb: {},
+                    mar: {},
+                    apr: {},
+                    may: {},
+                    jun: {},
+                    jul: {},
+                    aug: {},
+                    sep: {},
+                    oct: {},
+                    nov: {},
+                    dec: {}
+                }
+            };
+            this.modified = true;
+        }
+    }
+
     public getYears(): number[] {
         return Object.entries(this.evidDb).map(([key]) => Number(key));
+    }
+
+    public copyEntries(fromYearId: number, toYearId: number): void {
+        if ((fromYearId in this.evidDb) && (toYearId in this.evidDb)) {
+            Object.entries(this.evidDb[fromYearId].entries)
+                .forEach(([entryIdStr, entry]) => {
+                    const entryId = Number(entryIdStr);
+                    this.evidDb[toYearId].entries[entryId] = {
+                        name: entry.name,
+                        order: entry.order,
+                        type: entry.type
+                    };
+                });
+            this.modified = true;
+        }
     }
 
     public getYearEntries(yearId: number): YearEntries {
@@ -189,57 +227,8 @@ export class CurrentDatabase {
     }
 }
 
-const _fakeDb: EvidDb = {
-    1977: {
-        entries: {
-            1: {
-                name: "Výplata",
-                type: "income",
-                order: 1
-            },
-            2: {
-                name: "Kreditka",
-                type: "expense",
-                order: 2
-            },
-            3: {
-                name: "Výnosy",
-                type: "income",
-                order: 3
-            },
-            5: {
-                name: "Potraviny",
-                type: "expense",
-                order: 5
-            }
-        },
-        months: {
-            jan: {
-                1: 1500,
-                2: 1200,
-            },
-            feb: {
-                1: 1500,
-                3: 800,
-                2: 1200,
-                5: 1200
-            },
-            mar: {},
-            apr: {},
-            may: {},
-            jun: {},
-            jul: {},
-            aug: {},
-            sep: {},
-            oct: {},
-            nov: {},
-            dec: {}
-        }
-    }
-}
-
-export function createFakeDb(): CurrentDatabase {
-    return new CurrentDatabase(_fakeDb);
+export function createEmptyDb(): CurrentDatabase {
+    return new CurrentDatabase({});
 }
 
 export async function openDb(filePath: string, password: string): Promise<CurrentDatabase> {

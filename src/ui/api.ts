@@ -23,9 +23,8 @@ export type FileDialogResult = {
 
 export type IEvidAPI = GetApiType<
   {
-    showOpenFile: (str: string) => Promise<string>,
-    dbgLogCurrentDb: () => Promise<void>,
     contentRendered: () => Promise<void>,
+    getLastUsedDbPath: () => Promise<string>,
     isDbModified: () => Promise<boolean>,
     isDbFileSet: () => Promise<boolean>,
     saveDb: () => Promise<void>,
@@ -35,7 +34,9 @@ export type IEvidAPI = GetApiType<
     showOpenDbDialog: (defaultPath: string | undefined) => Promise<FileDialogResult>,
     getDbPath: () => Promise<string>,
     getYears: () => Promise<number[]>,
+    addNewYear: (yearId: number) => Promise<void>,
     getYearEntries: (yearId: number) => Promise<YearEntries>,
+    copyEntries: (fromYearId: number, toYearId: number) => Promise<void>,
     changeYearEntry: (yearId: number, entryId: number, entryName: string) => Promise<void>,
     newYearEntry: (yearId: number, entryType: EntryType) => Promise<void>,
     changeEntriesOrder: (yearId: number, entriesOrder: IEntryOrder[]) => Promise<void>,

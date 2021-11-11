@@ -4,7 +4,7 @@ import { IEntryOrder, IEvidAPI, FileDialogResult } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
 import { EntryType, MonthId } from './model';
-import { createFakeDb, CurrentDatabase, openDb } from './CurrentDatabase';
+import { createEmptyDb, CurrentDatabase, openDb } from './CurrentDatabase';
 
 // Conditionally include the dev tools installer to load React Dev Tools
 let devTools: typeof devOnly;  
@@ -36,7 +36,7 @@ type WindowSettings = {
   maximized?: boolean
 }
 
-let currentDatabase: CurrentDatabase = createFakeDb();
+let currentDatabase: CurrentDatabase = createEmptyDb();
 
 const monthReportPrintOptions: Electron.WebContentsPrintOptions = {
   margins: {
@@ -89,26 +89,11 @@ function printReport(type: "year" | "month", yearId: number, monthId?: MonthId) 
 }
 
 function installAPI(mainWindow: BrowserWindow) {
-  ipcMain.removeHandler<IEvidAPI>("showOpenFile");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ipcMain.handle<IEvidAPI>("showOpenFile", async (_event, ...args) => {
-    const openResult = await dialog.showOpenDialog(mainWindow, {
-      title: "Test Open",
-      buttonLabel: "Otovit",
-      filters: [
-        { name: "JSON", extensions: ["json"] },
-        { name: "All files", extensions: ["*"] }
-      ],
-      properties: [
-        "openFile"
-      ]
-    });
-    return openResult.canceled ? null : openResult.filePaths[0];
-  });
-
-  ipcMain.removeHandler<IEvidAPI>("dbgLogCurrentDb");
-  ipcMain.handle<IEvidAPI>("dbgLogCurrentDb", async () => {
-    console.log(currentDatabase.toJSON());
+  //const windowSettings = await settings.get("window") as WindowSettings | null;
+  ipcMain.removeHandler<IEvidAPI>("getLastUsedDbPath");
+  ipcMain.handle<IEvidAPI>("getLastUsedDbPath", async () => {
+    const lastEvidDbPath = await settings.get("lastEvidDbPath") as string | null;
+    return lastEvidDbPath;
   });
 
   ipcMain.removeHandler<IEvidAPI>("isDbModified");
@@ -213,9 +198,19 @@ function installAPI(mainWindow: BrowserWindow) {
     return currentDatabase.getYears();
   });
 
+  ipcMain.removeHandler<IEvidAPI>("addNewYear");
+  ipcMain.handle<IEvidAPI>("addNewYear", async (_event, ...[yearId]) => {
+    currentDatabase.addNewYear(yearId as number);
+  });
+
   ipcMain.removeHandler<IEvidAPI>("getYearEntries");
   ipcMain.handle<IEvidAPI>("getYearEntries", async (_event, ...[yearId]) => {
     return currentDatabase.getYearEntries(yearId as number);
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("copyEntries");
+  ipcMain.handle<IEvidAPI>("copyEntries", async (_event, ...[fromYearId, toYearId]) => {
+    currentDatabase.copyEntries(fromYearId as number, toYearId as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("changeYearEntry");
@@ -332,6 +327,11 @@ const createWindow = async (): Promise<void> => {
     };
 
     settings.setSync("window", windowSettings);
+
+    if (currentDatabase.hasPath()) {
+      const dbFile = currentDatabase.getFile();
+      settings.setSync("lastEvidDbPath", dbFile);
+    }
   });
 };
 

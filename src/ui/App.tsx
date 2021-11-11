@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Mosaic, MosaicBranch, MosaicWindow, ExpandButton } from 'react-mosaic-component';
-import { AddYearButton, Explorer, IExplorerProps } from './Explorer';
+import { Explorer, IExplorerProps } from './Explorer';
 import { MonthId, monthLabel } from '../model';
 
 import 'react-mosaic-component/react-mosaic-component.css';
@@ -9,26 +9,114 @@ import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
 import '@blueprintjs/table/lib/css/table.css';
 import '@blueprintjs/popover2/lib/css/blueprint-popover2.css';
-import { AnchorButton, Button, Classes, Dialog, FormGroup, InputGroup, Intent, Navbar } from '@blueprintjs/core';
+import { AnchorButton, Button,  Classes, Dialog, FormGroup, HTMLSelect, InputGroup, Intent, Navbar, NumericInput, Switch } from '@blueprintjs/core';
 import { MonthEditorPanel, YearEditorPanel } from './editors';
 import { Tooltip2 } from '@blueprintjs/popover2';
 import { FileDialogResult } from './api';
 
 const mosaicToolbarControls = React.Children.toArray([<ExpandButton />]);
 
+interface AddYearButtonProps {
+  onAddYear: () => void;
+}
+
+function AddYearButton(props: AddYearButtonProps): React.ReactElement {
+  return (
+      <Tooltip2 content={"Pridať nový rok"} openOnTargetFocus={false}>
+          <Button className="bp3-minimal" icon="add" onClick={props.onAddYear}/>
+      </Tooltip2>
+  );
+}
+
+interface AddYearDialogProps {
+  open: boolean;
+  years: number[];
+  onClose: () => void;
+  onAddNewYear: (newYearId: number, copyYearId: number | null) => void;
+}
+
+function AddYearDialog(props: AddYearDialogProps) {
+  const maxYearId = props.years?.reduce((prev, current) => Math.max(prev, current), 0);
+  const currentYear = new Date().getFullYear();
+
+  const [newYearId, setNewYearId] = React.useState(maxYearId ? (maxYearId + 1) : currentYear);
+  React.useEffect(() => setNewYearId(maxYearId ? (maxYearId + 1) : currentYear), [maxYearId, currentYear]);
+
+  const [copyYearId, setCopyYearId] = React.useState(maxYearId);
+  React.useEffect(() => setCopyYearId(maxYearId), [maxYearId]);
+  const [copyEntries, setCopyEntries] = React.useState(!!maxYearId);
+  React.useEffect(() => setCopyEntries(!!maxYearId), [maxYearId]);
+
+  const validData = newYearId && !props.years?.includes(newYearId);
+
+  // ak su v db nejake roky, tak predvyplnit max(yearId) + 1, inak predvyplnit current year
+  // ak su v db nejake roky, v copyYearId ich vyplnit, vybrat max(yearId) a vybrat zaskrnutie kopirovania
+  // validny je vtedy, ak je v newYearId vyplnene cislo a to cislo nie je v zozname existujucich rokov
+  return (
+    <Dialog isOpen={props.open} onClose={props.onClose} className={Classes.DARK} title="Pridať Nový Rok">
+      <form onSubmit={(e) => {
+                    e.preventDefault();
+                    if (validData) {
+                       props.onAddNewYear(newYearId, copyEntries ? copyYearId : null);
+                    }
+                }}
+      >
+        <div className={Classes.DIALOG_BODY}>
+          <FormGroup label="Nový rok" labelFor="newYearId" inline={true} >
+            <NumericInput
+                  id="newYearId"
+                  buttonPosition="right"
+                  intent="primary"
+                  minorStepSize={null}
+                  value={newYearId}
+                  onValueChange={setNewYearId}
+            />
+          </FormGroup>
+          <FormGroup label={
+                        <Switch
+                            checked={copyEntries}
+                            label="Kopírovať položky z roku"
+                            onChange={(event) => setCopyEntries((event.target as HTMLInputElement).checked)}
+                        />
+                      }
+                      labelFor="copyYearId" inline={true}
+          >
+              <HTMLSelect id="copyYearId" options={props.years?.sort((a, b) => a - b)} value={copyYearId} onChange={(event) => setCopyYearId(Number(event.target.value))} />
+          </FormGroup>
+        </div>
+        <div className={Classes.DIALOG_FOOTER}>
+          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+            <Button type="submit" disabled={!validData} intent="primary" >Pridať</Button>
+            <Button onClick={props.onClose} >Zatvoriť</Button>
+          </div>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
 interface AppPanelProps {
   path: MosaicBranch[]
 }
 
 interface ExplorerPanelProps extends AppPanelProps, IExplorerProps {
-  dbModified: boolean
+  dbModified: boolean;
+  onAddNewYear: (newYearId: number, copyYearId: number | null) => Promise<void>;
 }
 
 function ExplorerPanel(props: ExplorerPanelProps) {
+  const [addYearDialogOpen, setAddYearDialogOpen] = React.useState(false);
+
+  const addNewYear = async (newYearId: number, copyYearId: number | null) => {
+    await props.onAddNewYear(newYearId, copyYearId);
+    setAddYearDialogOpen(false);
+  };
+
   return (
     <MosaicWindow<EvidWindowId> path={props.path} title="Roky" toolbarControls={React.Children.toArray([
-              <AddYearButton />
+              <AddYearButton onAddYear={() => setAddYearDialogOpen(true)} />
             ])}>
+      <AddYearDialog open={addYearDialogOpen} years={props.dbYears} onClose={() => setAddYearDialogOpen(false)} onAddNewYear={addNewYear}/>
       <Explorer dbYears={props.dbYears} onYearSelected={props.onYearSelected} onMonthSelected={props.onMonthSelected}/>
     </MosaicWindow>
   );
@@ -84,7 +172,7 @@ interface SaveDbButtonProps {
 
 function SaveDbButton(props: SaveDbButtonProps): React.ReactElement {
   return (
-      <Tooltip2 content={"Uložiť databázu"}>
+      <Tooltip2 content={"Uložiť databázu"} openOnTargetFocus={false} >
           <AnchorButton
               disabled={!props.dbModified}
               className="bp3-minimal"
@@ -101,7 +189,7 @@ interface OpenDbButtonProps {
 
 function OpenDbButton(props: OpenDbButtonProps): React.ReactElement {
   return (
-      <Tooltip2 content={"Otvoriť databázu"}>
+      <Tooltip2 content={"Otvoriť databázu"} openOnTargetFocus={false} >
           <AnchorButton
               className="bp3-minimal"
               icon="unarchive"
@@ -190,6 +278,8 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
                       placeholder="Zadajte cestu k súboru..."
                       rightElement={browseButton}
                       type="text"
+                      fill={true}
+                      size={180}
                       value={filePath}
                       onChange={(event) => setFilePath(event.target.value)}
               />
@@ -200,6 +290,8 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
                       placeholder="Zadajte heslo..."
                       rightElement={lockButton}
                       type={showPassword ? "text" : "password"}
+                      fill={true}
+                      size={180}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
               />
@@ -276,6 +368,30 @@ function App() {
     retrieveDbFile();
   }, []);
 
+  const [lastDbFile, setLastDbFile] = React.useState(null as string);
+  const retrieveLastDbFile = async () => {
+    const lastFile = await window.evidAPI.invoke.getLastUsedDbPath();
+    setLastDbFile(lastFile);
+  };
+  React.useEffect(() => {
+    retrieveLastDbFile();
+  }, []);
+
+  if (!dbFile && lastDbFile && !showDbDialog) {
+    setDbDialogType("open");
+    setDbFile(lastDbFile);
+    setShowDbDialog(true);
+  }
+
+  const addNewYear = async (newYearId: number, copyYearId: number | null) => {
+    await window.evidAPI.invoke.addNewYear(newYearId);
+    if (copyYearId) {
+      await window.evidAPI.invoke.copyEntries(copyYearId, newYearId);
+    }
+    await retrieveCurrentDbYears();
+    await retrieveDbModified();
+  };
+
   const [selectedNode, setSelectedNode] = React.useState(null as SelectedNodeData);
 
   const tile = (id: EvidWindowId, path: MosaicBranch[]) => {
@@ -290,6 +406,7 @@ function App() {
               onYearSelected={(yearId) => setSelectedNode({yearId})}
               onMonthSelected={(yearId, monthId) => setSelectedNode({monthId, yearId})}
               dbModified={dbModified}
+              onAddNewYear={addNewYear}
               />
         );
       case "output":

@@ -4,14 +4,11 @@ import { IEntryOrder, IEntrySum, IEvidAPI, IMonthSums, FileDialogResult } from '
 
 const api: IEvidAPI = {
     invoke: {
-        showOpenFile: async (key: string) => {
-            return await ipcRenderer.invoke<IEvidAPI>('showOpenFile', key) as string;
-        },
-        dbgLogCurrentDb: async () => {
-            await ipcRenderer.invoke<IEvidAPI>("dbgLogCurrentDb");
-        },
         contentRendered: async () => {
             await ipcRenderer.invoke<IEvidAPI>("contentRendered");
+        },
+        getLastUsedDbPath: async () => {
+            return await ipcRenderer.invoke<IEvidAPI>("getLastUsedDbPath") as string;
         },
         isDbModified: async () => {
             return await ipcRenderer.invoke<IEvidAPI>("isDbModified") as boolean;
@@ -40,8 +37,14 @@ const api: IEvidAPI = {
         getYears: async () => {
             return await ipcRenderer.invoke<IEvidAPI>("getYears") as number[];
         },
+        addNewYear: async (yearId: number) => {
+            await ipcRenderer.invoke<IEvidAPI>("addNewYear", yearId);
+        },
         getYearEntries: async (yearId: number) => {
             return await ipcRenderer.invoke<IEvidAPI>("getYearEntries", yearId) as YearEntries;
+        },
+        copyEntries: async (fromYearId: number, toYearId: number) => {
+            await ipcRenderer.invoke<IEvidAPI>("copyEntries", fromYearId, toYearId);
         },
         changeYearEntry: async (yearId: number, entryId: number, entryName: string) => {
             await ipcRenderer.invoke<IEvidAPI>("changeYearEntry", yearId, entryId, entryName);

@@ -7,8 +7,6 @@ import { MonthId, orderToMonth, monthLabel } from "../model";
 import { Tooltip2 } from "@blueprintjs/popover2";
 
 
-//type NodePath = number[];
-
 type NodeData = {
     yearId: number;
     monthId?: MonthId;
@@ -76,14 +74,6 @@ function changeTreeState(oldTreeState: TreeState, nodeId: number, nodeChange: (n
     }
     nodeChange(newTreeState[nodeId]);
     return newTreeState;
-}
-
-export function AddYearButton(): React.ReactElement {
-    return (
-        <Tooltip2 content={"Pridať nový rok"}>
-            <Button className="bp3-minimal" icon="add" onClick={() => window.evidAPI.invoke.showOpenFile("k").then((f) => console.log("opened: " + f))}/>
-        </Tooltip2>
-    );
 }
 
 export interface IExplorerProps {

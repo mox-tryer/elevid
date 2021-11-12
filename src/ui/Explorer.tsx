@@ -2,9 +2,8 @@
 import { cloneDeep } from "lodash-es";
 import * as React from 'react';
 import { useState } from 'react';
-import { TreeNodeInfo, Tree, Button } from "@blueprintjs/core";
+import { TreeNodeInfo, Tree } from "@blueprintjs/core";
 import { MonthId, orderToMonth, monthLabel } from "../model";
-import { Tooltip2 } from "@blueprintjs/popover2";
 
 
 type NodeData = {

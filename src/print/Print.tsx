@@ -68,11 +68,11 @@ function PrintMonthReport(props: PrintMonthReportProps) {
             </tr>
         ));
         
-        window.evidAPI.invoke.contentRendered();
+        window.evidAPI.invoke.printReportWindow("month");
 
         return (
             <table className="mreport_table" cellPadding="0" cellSpacing="0">
-                <tr key="header"><td colSpan={2} className="mreport_header"><b>{props.yearId} {monthLabel(props.monthId)}</b></td></tr>
+                <tr key="header"><td colSpan={2} className="mreport_header"><b>{monthLabel(props.monthId)} {props.yearId}</b></td></tr>
                 {rowComponents}
                 <tr key="totalExpense"><td className="mreport_total_expense_name">V&yacute;davky</td><td className="mreport_total_expense_value">{totalExpense.toFixed(2)}</td></tr>
                 <tr key="totalSavings"><td className="mreport_savings_name">&Uacute;spory</td><td className="mreport_savings_value">{totalSavings.toFixed(2)}</td></tr>
@@ -106,7 +106,7 @@ function PrintYearReport(props: PrintYearReportProps) {
     }, [props.yearId]);
 
     if (yearSums && monthsSums) {
-        window.evidAPI.invoke.contentRendered();
+        window.evidAPI.invoke.printReportWindow("year");
 
         //todo("vyrobit report... nadpis... prva tabulka ma mesiace jan-jul, druha tabulka aug-dec a na konci este jedna, ktora vyzera byt oddelena, kde je cely rok");
         return <div>{props.yearId}</div>;

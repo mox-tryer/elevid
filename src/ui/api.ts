@@ -23,7 +23,6 @@ export type FileDialogResult = {
 
 export type IEvidAPI = GetApiType<
   {
-    contentRendered: () => Promise<void>,
     getLastUsedDbPath: () => Promise<string>,
     isDbModified: () => Promise<boolean>,
     isDbFileSet: () => Promise<boolean>,
@@ -49,6 +48,7 @@ export type IEvidAPI = GetApiType<
     printMonthReport: (yearId: number, monthId: MonthId) => Promise<void>,
     printYearReport: (yearId: number) => Promise<void>,
     getMonthsSums: (yearId: number) => Promise<IMonthSums[]>,
+    printReportWindow: (reportType: "year" | "month") => Promise<void>,
   },
   {
     showAlert: (text: string, num: number) => Promise<void>;

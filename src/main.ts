@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, WebContents } from 'electron';
 import { ipcMain } from 'electron-typescript-ipc';
 import { IEntryOrder, IEvidAPI, FileDialogResult } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
@@ -56,11 +56,13 @@ const yearReportPrintOptions: Electron.WebContentsPrintOptions = {
   pageSize: "A4"
 };
 
-function printReport(type: "year" | "month", yearId: number, monthId?: MonthId) {
+function printReport(parentWindow: BrowserWindow, type: "year" | "month", yearId: number, monthId?: MonthId) {
   const printWindow = new BrowserWindow({
-    height: 1200,
+    height: 900,
     width: 1600,
-    show: false,
+    parent: parentWindow,
+    modal: !!parentWindow,
+    //show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -68,16 +70,9 @@ function printReport(type: "year" | "month", yearId: number, monthId?: MonthId) 
     },
   });
 
+  printWindow.removeMenu();
+
   console.log("printReport(" + type + ")");
-
-  ipcMain.removeHandler<IEvidAPI>("contentRendered");
-  ipcMain.handle<IEvidAPI>("contentRendered", async () => {
-    printWindow.webContents.print((type == "year" ? yearReportPrintOptions : monthReportPrintOptions), () => printWindow.close());
-  });
-
-  printWindow.on("close", () => {
-    ipcMain.removeHandler<IEvidAPI>("contentRendered");
-  });
 
   let queryString = "?type=" + type + "&yearId=" + yearId;
   if (type == "month") {
@@ -88,8 +83,19 @@ function printReport(type: "year" | "month", yearId: number, monthId?: MonthId) 
   printWindow.loadURL(PRINT_WINDOW_WEBPACK_ENTRY + queryString);
 }
 
+async function printReportWindow(webContents: WebContents, reportType: "year" | "month") {
+  const printWindow = BrowserWindow.fromWebContents(webContents);
+  const printOptions = (reportType == "year" ? yearReportPrintOptions : monthReportPrintOptions);
+  webContents.print(printOptions, () => {
+    if (printWindow) {
+      setTimeout(() => {
+          printWindow.close();
+        }, 300);
+    }
+  });
+}
+
 function installAPI(mainWindow: BrowserWindow) {
-  //const windowSettings = await settings.get("window") as WindowSettings | null;
   ipcMain.removeHandler<IEvidAPI>("getLastUsedDbPath");
   ipcMain.handle<IEvidAPI>("getLastUsedDbPath", async () => {
     const lastEvidDbPath = await settings.get("lastEvidDbPath") as string | null;
@@ -260,17 +266,22 @@ function installAPI(mainWindow: BrowserWindow) {
 
   ipcMain.removeHandler<IEvidAPI>("printMonthReport");
   ipcMain.handle<IEvidAPI>("printMonthReport", async (_event, ...[yearId, monthId]) => {
-    printReport("month", yearId as number, monthId as MonthId);
+    printReport(mainWindow, "month", yearId as number, monthId as MonthId);
   });
 
   ipcMain.removeHandler<IEvidAPI>("printYearReport");
   ipcMain.handle<IEvidAPI>("printYearReport", async (_event, ...[yearId]) => {
-    printReport("year", yearId as number);
+    printReport(mainWindow, "year", yearId as number);
   });
 
   ipcMain.removeHandler<IEvidAPI>("getMonthsSums");
   ipcMain.handle<IEvidAPI>("getMonthsSums", async (_event, ...[yearId]) => {
     return currentDatabase.getMonthsSums(yearId as number);
+  });
+
+  ipcMain.removeHandler<IEvidAPI>("printReportWindow");
+  ipcMain.handle<IEvidAPI>("printReportWindow", async (event, ...[reportType]) => {
+    await printReportWindow(event.sender, reportType as "year" | "month");
   });
 }
 
@@ -288,8 +299,7 @@ const createWindow = async (): Promise<void> => {
     },
   });
 
-  // and load the index.html of the app.
-  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+  installAPI(mainWindow);
 
   // Open the DevTools if in dev mode.
   if (isDev) {
@@ -297,12 +307,13 @@ const createWindow = async (): Promise<void> => {
   }
 
   mainWindow.on("ready-to-show", () => {
-    installAPI(mainWindow);
-
     if (windowSettings?.maximized) {
       mainWindow.maximize();
     }
   });
+
+  // and load the index.html of the app.
+  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   mainWindow.on("close", (e) => {
     if (currentDatabase.isModified()) {

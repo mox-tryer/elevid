@@ -112,7 +112,7 @@ export class CurrentDatabase {
     }
 
     public getYearEntries(yearId: number): YearEntries {
-        return this.evidDb[yearId].entries;
+        return this.evidDb[yearId]?.entries;
     }
 
     public changeYearEntry(yearId: number, entryId: number, entryName: string): void {
@@ -161,7 +161,7 @@ export class CurrentDatabase {
     }
 
     public getMonthEntries(yearId: number, monthId: MonthId): MonthEntries {
-        return this.evidDb[yearId].months[monthId];
+        return this.evidDb[yearId]?.months[monthId];
     }
 
     public incrementMonthEntry(yearId: number, monthId: MonthId, entryId: number, value: number): void {

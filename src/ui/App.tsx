@@ -348,6 +348,7 @@ function App() {
     await retrieveDbModified();
     await retrieveDbFile();
     setShowDbDialog(false);
+    setSelectedNode(null);
   }
 
   const saveDbAs = async (filePath: string, password: string) => {
@@ -393,6 +394,8 @@ function App() {
   };
 
   const [selectedNode, setSelectedNode] = React.useState(null as SelectedNodeData);
+
+  // TODO: pri zmene dbPath (cize otvoreni novej DB - ale radsej poriesit save novej DB nejak) sa musi resetnut selectedNode na null - inak sa moze stat, ze sa bude chciet citat neexistujuci rok v editor paneli
 
   const tile = (id: EvidWindowId, path: MosaicBranch[]) => {
     switch (id) {

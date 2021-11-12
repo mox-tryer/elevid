@@ -4,9 +4,6 @@ import { IEntryOrder, IEntrySum, IEvidAPI, IMonthSums, FileDialogResult } from '
 
 const api: IEvidAPI = {
     invoke: {
-        contentRendered: async () => {
-            await ipcRenderer.invoke<IEvidAPI>("contentRendered");
-        },
         getLastUsedDbPath: async () => {
             return await ipcRenderer.invoke<IEvidAPI>("getLastUsedDbPath") as string;
         },
@@ -82,6 +79,9 @@ const api: IEvidAPI = {
         getMonthsSums: async (yearId: number) => {
             return await ipcRenderer.invoke<IEvidAPI>("getMonthsSums", yearId) as IMonthSums[];
         },
+        printReportWindow: async (reportType: "year" | "month") => {
+            await ipcRenderer.invoke<IEvidAPI>("printReportWindow", reportType);
+        }
     },
     on: {
         showAlert: (listener) => {

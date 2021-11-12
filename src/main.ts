@@ -374,6 +374,23 @@ const createWindow = async (): Promise<void> => {
   });
 };
 
+/**
+ * Sets up the update service
+ */
+ function setupUpdates() {
+  // We delay this work by 10s to ensure that the
+  // app doesn't have to worry about updating during launch
+  setTimeout(() => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const updateApp = require('update-electron-app');
+
+    updateApp({
+      repo: 'mox-tryer/elevid',
+      updateInterval: '1 hour',
+    });
+  }, 10000);
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -387,6 +404,8 @@ app.on('ready', () => {
   }
 
   createWindow();
+
+  setupUpdates();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

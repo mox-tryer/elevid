@@ -300,7 +300,7 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
           <div className={Classes.DIALOG_FOOTER}>
             <div className={Classes.DIALOG_FOOTER_ACTIONS}>
               <Button type="submit" intent="primary" disabled={!validData}>{(props.type == "open" ? "Otvoriť" : "Uložiť")}</Button>
-              <Button onClick={props.onClose} >Zatvoriť</Button>
+              <Button onClick={props.onClose} >Zrušiť</Button>
             </div>
           </div>
         </form>

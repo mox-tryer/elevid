@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, WebContents } from 'electron';
+import { app, BrowserWindow, dialog, Menu, WebContents } from 'electron';
 import { ipcMain } from 'electron-typescript-ipc';
 import { IEntryOrder, IEvidAPI, FileDialogResult } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
@@ -285,6 +285,32 @@ function installAPI(mainWindow: BrowserWindow) {
   });
 }
 
+function createMainWindowMenu(): Menu {
+  return Menu.buildFromTemplate([
+    {
+      label: "Súbor",
+      submenu: [
+        {
+          label: "Skončiť",
+          role: "quit"
+        }
+      ]
+    },
+    {
+      label: "Upraviť"
+    },
+    {
+      label: "Zobraziť"
+    },
+    {
+      label: "Okno"
+    },
+    {
+      label: "Pomocník"
+    }
+  ]);
+}
+
 const createWindow = async (): Promise<void> => {
   const windowSettings = await settings.get("window") as WindowSettings | null;
 
@@ -298,6 +324,8 @@ const createWindow = async (): Promise<void> => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
   });
+
+  //mainWindow.setMenu(createMainWindowMenu());
 
   installAPI(mainWindow);
 

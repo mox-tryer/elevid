@@ -439,12 +439,13 @@ function App() {
         initialValue={{
           direction: 'row',
           first: 'explorer',
-          second: {
-            direction: 'column',
-            first: 'editor',
-            second: 'output',
-            splitPercentage: 80
-          },
+          // second: {
+          //   direction: 'column',
+          //   first: 'editor',
+          //   second: 'output',
+          //   splitPercentage: 80
+          // },
+          second: 'editor',
           splitPercentage: 30,
         }}
         className="mosaic-blueprint-theme bp3-dark"

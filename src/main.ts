@@ -114,13 +114,21 @@ function installAPI(mainWindow: BrowserWindow) {
 
   ipcMain.removeHandler<IEvidAPI>("saveDb");
   ipcMain.handle<IEvidAPI>("saveDb", async () => {
-    await currentDatabase.save();
+    try {
+      await currentDatabase.save();
+    } catch (e) {
+      dialog.showErrorBox("Chyba zápisu", e.toString());
+    }
   });
 
   ipcMain.removeHandler<IEvidAPI>("saveDbAs");
   ipcMain.handle<IEvidAPI>("saveDbAs", async (_event, ...[filePath, password]) => {
     currentDatabase.setFile(filePath as string, password as string);
-    await currentDatabase.save();
+    try {
+      await currentDatabase.save();
+    } catch (e) {
+      dialog.showErrorBox("Chyba zápisu", e.toString());
+    }
   });
 
   ipcMain.removeHandler<IEvidAPI>("showSaveDbDialog");

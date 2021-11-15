@@ -340,23 +340,26 @@ function App() {
   const showOpenDbDialog = () => {
     setDbDialogType("open");
     setShowDbDialog(true);
-  }
+  };
+
+  const closeFileDialog = async () => {
+    await retrieveDbModified();
+    await retrieveDbFile();
+    setLastDbFile(null);
+    setShowDbDialog(false);
+  };
 
   const openDb = async (filePath: string, password: string) => {
     await window.evidAPI.invoke.openDb(filePath, password);
     await retrieveCurrentDbYears();
-    await retrieveDbModified();
-    await retrieveDbFile();
-    setShowDbDialog(false);
+    await closeFileDialog();
     setSelectedNode(null);
-  }
+  };
 
   const saveDbAs = async (filePath: string, password: string) => {
     await window.evidAPI.invoke.saveDbAs(filePath, password);
-    await retrieveDbModified();
-    await retrieveDbFile();
-    setShowDbDialog(false);
-  }
+    await closeFileDialog();
+  };
 
   const [showDbDialog, setShowDbDialog] = React.useState(false);
   const [dbDialogType, setDbDialogType] = React.useState("open" as "open" | "save");
@@ -424,7 +427,7 @@ function App() {
           type={dbDialogType}
           open={showDbDialog}
           filePath={dbFile}
-          onClose={() => setShowDbDialog(false)}
+          onClose={closeFileDialog}
           onOpen={openDb}
           onSave={saveDbAs}
       />

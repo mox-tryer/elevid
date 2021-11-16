@@ -85,12 +85,19 @@ function EntryEditDialog(props: EntryEditDialogProps) {
     const addToEntryValue = (value: number) => {
         setEntryValue(entryValue + value);
         props.onValueAdded(value);
-    }
+    };
 
     const setToEntryValue = (value: number) => {
         setEntryValue(value);
         props.onValueSet(value);
-    }
+    };
+
+    /*const onAddEntryInputValueChange = (valueAsNumber: number, valueAsString: string, inputElement: HTMLInputElement | null) => {
+        setValueForAdd(valueAsNumber);
+        inputElement.setSelectionRange(0, valueAsString.length);
+    };*/
+
+    const valueForAddRef = React.createRef<HTMLInputElement>();
 
     return (
         <Dialog isOpen={props.isOpen}
@@ -107,11 +114,12 @@ function EntryEditDialog(props: EntryEditDialogProps) {
                     <form onSubmit={(e) => {
                             e.preventDefault();
                             addToEntryValue(valueForAdd);
+                            valueForAddRef.current.setSelectionRange(0, valueForAddRef.current.value.length);
                         }}
                     >
                         <FormGroup intent="primary" label="Pridať" labelFor="addEntryInput" helperText="Pridávanie sumy k existujúcej sume na položke">
                             <ControlGroup>
-                                <NumericInput id="addEntryInput" buttonPosition="none" leftIcon="euro" placeholder="Suma..."
+                                <NumericInput id="addEntryInput" inputRef={valueForAddRef} buttonPosition="none" leftIcon="euro" placeholder="Suma..."
                                         onValueChange={setValueForAdd}
                                 />
                                 <Button icon="add" type="submit" />

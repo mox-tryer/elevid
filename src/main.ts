@@ -293,11 +293,67 @@ function installAPI(mainWindow: BrowserWindow) {
   });
 }
 
+async function onCreateNewDatabase(browserWindow: BrowserWindow) {
+  if (currentDatabase.isModified()) {
+    const opts = {
+      message: "Databáza nie je uložená. Naozaj vytvoriť novú?",
+      title: "Vytvoriť Databázu?",
+      type: "warning",
+      buttons: ["Áno", "Nie"],
+      cancelId: 1,
+      noLink: true,
+    };
+    const result = await dialog.showMessageBox(browserWindow, opts);
+    if (result.response != 0) {
+      return;
+    }
+  }
+
+  currentDatabase = createEmptyDb();
+  ipcMain.send<IEvidAPI>(browserWindow, "dbHasChanged");
+}
+
+async function onSaveDatabase(browserWindow: BrowserWindow) {
+  if (!currentDatabase.isModified()) {
+    return;
+  }
+
+  const hasFile = currentDatabase.hasPath();
+  if (hasFile) {
+    try {
+      await currentDatabase.save();
+    } catch (e) {
+      dialog.showErrorBox("Chyba zápisu", e.toString());
+    }
+    ipcMain.send<IEvidAPI>(browserWindow, "dbModificationChanged");
+  } else {
+    ipcMain.send<IEvidAPI>(browserWindow, "showSaveDbDialog");
+  }
+}
+
 function createMainWindowMenu(): Menu {
   return Menu.buildFromTemplate([
     {
       label: "Súbor",
       submenu: [
+        {
+          label: "Nová databáza",
+          click: async (_menuItem, browserWindow) => await onCreateNewDatabase(browserWindow),
+          accelerator: "Control+N"
+        },
+        {
+          label: "Otvoriť databázu",
+          click: (_menuItem, browserWindow) => ipcMain.send<IEvidAPI>(browserWindow, "showOpenDbDialog"),
+          accelerator: "Control+O"
+        },
+        {
+          label: "Uložiť databázu",
+          click: async (_menuItem, browserWindow) => await onSaveDatabase(browserWindow),
+          accelerator: "Control+S"
+        },
+        {
+          type: "separator"
+        },
         {
           label: "Skončiť",
           role: "quit"
@@ -305,16 +361,72 @@ function createMainWindowMenu(): Menu {
       ]
     },
     {
-      label: "Upraviť"
+      label: "Zobraziť",
+      submenu: [
+        {
+          label: "Obnoviť",
+          role: "reload"
+        },
+        {
+          label: "Vynútené obnovenie",
+          role: "forceReload"
+        },
+        {
+          label: "Vývojové nástroje",
+          role: "toggleDevTools"
+        },
+        {
+          type: "separator"
+        },
+        {
+          label: "Skutočná veľkosť",
+          role: "resetZoom"
+        },
+        {
+          label: "Zväčšiť",
+          role: "zoomIn"
+        },
+        {
+          label: "Zmenšiť",
+          role: "zoomOut"
+        },
+        {
+          type: "separator"
+        },
+        {
+          label: "Na celú obrazovku",
+          role: "togglefullscreen"
+        }
+      ]
     },
     {
-      label: "Zobraziť"
+      label: "Okno",
+      submenu: [
+        {
+          label: "Minimalizovať",
+          role: "minimize"
+        },
+        {
+          label: "Zatvoriť",
+          role: "close"
+        }
+      ]
     },
     {
-      label: "Okno"
-    },
-    {
-      label: "Pomocník"
+      label: "Pomocník",
+      submenu: [
+        {
+          label: "O programe",
+          click: (_menuItem, browserWindow) => {
+            dialog.showMessageBox(browserWindow, {
+              message: "ElEvid " + app.getVersion(),
+              type: "info",
+              title: "O Programe", 
+              detail: "Jednoduchá evidencia rodinných výdavkov"
+            });
+          }
+        }
+      ]
     }
   ]);
 }
@@ -333,7 +445,7 @@ const createWindow = async (): Promise<void> => {
     },
   });
 
-  //mainWindow.setMenu(createMainWindowMenu());
+  mainWindow.setMenu(createMainWindowMenu());
 
   installAPI(mainWindow);
 

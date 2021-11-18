@@ -84,9 +84,18 @@ const api: IEvidAPI = {
         }
     },
     on: {
-        showAlert: (listener) => {
-            ipcRenderer.on<IEvidAPI>('showAlert', listener);
+        dbHasChanged: (listener) => {
+            ipcRenderer.on<IEvidAPI>("dbHasChanged", listener);
         },
+        showOpenDbDialog: (listener) => {
+            ipcRenderer.on<IEvidAPI>("showOpenDbDialog", listener);
+        },
+        dbModificationChanged: (listener) => {
+            ipcRenderer.on<IEvidAPI>("dbModificationChanged", listener);
+        },
+        showSaveDbDialog: (listener) => {
+            ipcRenderer.on<IEvidAPI>("showSaveDbDialog", listener);
+        }
     },
 };
 

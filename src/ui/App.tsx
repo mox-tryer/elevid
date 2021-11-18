@@ -420,6 +420,22 @@ function App() {
     }
     return <div>??</div>;
   };
+  
+  window.evidAPI.on.dbHasChanged(async () => {
+    await retrieveCurrentDbYears();
+    await closeFileDialog();
+    await setSelectedNode(null);
+  });
+  window.evidAPI.on.showOpenDbDialog(() => {
+    showOpenDbDialog();
+  });
+  window.evidAPI.on.dbModificationChanged(async () => {
+    await retrieveDbModified();
+  });
+  window.evidAPI.on.showSaveDbDialog(() => {
+    setDbDialogType("save");
+    setShowDbDialog(true);
+  });
 
   return (
     <div className="container">

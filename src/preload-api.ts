@@ -1,9 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron-typescript-ipc';
 import { EntryType, MonthEntries, MonthId, YearEntries } from './model';
-import { IEntryOrder, IEntrySum, IEvidAPI, IMonthSums, FileDialogResult } from './ui/api';
+import { IEntryOrder, IEntrySum, IEvidAPI, IMonthSums, FileDialogResult, EvidTheme } from './ui/api';
 
 const api: IEvidAPI = {
     invoke: {
+        getCurrentTheme: async () => {
+            return await ipcRenderer.invoke<IEvidAPI>("getCurrentTheme") as EvidTheme;
+        },
         getLastUsedDbPath: async () => {
             return await ipcRenderer.invoke<IEvidAPI>("getLastUsedDbPath") as string;
         },
@@ -84,6 +87,9 @@ const api: IEvidAPI = {
         }
     },
     on: {
+        themeHasChanged: (listener) => {
+            ipcRenderer.on<IEvidAPI>("themeHasChanged", listener);
+        },
         dbHasChanged: (listener) => {
             ipcRenderer.on<IEvidAPI>("dbHasChanged", listener);
         },

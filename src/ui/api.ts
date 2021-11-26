@@ -1,6 +1,8 @@
 import { GetApiType } from 'electron-typescript-ipc';
 import { Entry, EntryType, MonthEntries, MonthId, YearEntries } from '../model';
 
+export type EvidTheme = "dark" | "light";
+
 export type IEntryOrder = { entryId: number, order: number};
 
 export type IEntrySum = {
@@ -23,6 +25,7 @@ export type FileDialogResult = {
 
 export type IEvidAPI = GetApiType<
   {
+    getCurrentTheme: () => Promise<EvidTheme>;
     getLastUsedDbPath: () => Promise<string>;
     isDbModified: () => Promise<boolean>;
     isDbFileSet: () => Promise<boolean>;
@@ -51,6 +54,7 @@ export type IEvidAPI = GetApiType<
     printReportWindow: (reportType: "year" | "month") => Promise<void>;
   },
   {
+    themeHasChanged: () => Promise<void>;
     dbHasChanged: () => Promise<void>;
     showOpenDbDialog: () => Promise<void>;
     dbModificationChanged: () => Promise<void>;

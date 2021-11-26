@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { MonthEntries, MonthId, YearEntries } from '../../model';
+import { EvidTheme } from '../api';
 import { MonthEditor } from './MonthEditor';
 
 export type IMonthEditorPanelProps = {
     dbPath: string;
     yearId: number | undefined;
     monthId: MonthId | undefined;
+    currentTheme: EvidTheme;
     onChange: () => void;
 };
 
@@ -50,6 +52,7 @@ export function MonthEditorPanel(props: IMonthEditorPanelProps): React.ReactElem
             monthId={props.monthId}
             yearEntries={yearEntries}
             monthEntries={monthEntries}
+            currentTheme={props.currentTheme}
             onValueAdded={valueAdder}
             onValueSet={valueSetter}
             onPrint={printReport}

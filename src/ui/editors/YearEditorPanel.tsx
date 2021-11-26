@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { EntryType, YearEntries } from '../../model';
 import { Button, Callout, Classes, Dialog } from '@blueprintjs/core';
-import { IEntryOrder, IEntrySum } from '../api';
+import { EvidTheme, IEntryOrder, IEntrySum } from '../api';
 import { YearEditor } from './YearEditor';
+import classNames from 'classnames';
+import { themeClasses } from '../theme';
 
 export type IYearEditorPanelProps = {
     yearId: number | undefined;
+    currentTheme: EvidTheme;
     onChange: () => void;
   };
   
@@ -85,7 +88,7 @@ export function YearEditorPanel(props: IYearEditorPanelProps): React.ReactElemen
               isOpen={deleteConfirmDialogState.open}
               onClose={() => setDeleteConfirmDialogState(closeDeleteConfirmDialogState)}
               title="Potvrdenie vymazania"
-              className={Classes.DARK}
+              className={classNames(themeClasses(props.currentTheme))}
           >
             <div className={Classes.DIALOG_BODY}>
               <p>Naozaj kompletne vymazať položku {deleteConfirmDialogState.entryName} z roku {deleteConfirmDialogState.yearId}?</p>

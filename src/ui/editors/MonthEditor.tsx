@@ -3,6 +3,9 @@ import { Button, ButtonGroup, Classes, ControlGroup, Dialog, Divider, FormGroup,
 import { Cell, Column, SelectionModes, Table2 } from "@blueprintjs/table";
 import { Entry, EntryType, MonthEntries, MonthId, YearEntries } from '../../model';
 import { Tooltip2 } from '@blueprintjs/popover2';
+import { EvidTheme } from '../api';
+import classNames from 'classnames';
+import { themeClasses } from '../theme';
 
 interface MonthReportProps {
     yearEntries: YearEntries;
@@ -69,6 +72,7 @@ interface EntryEditDialogProps {
     isOpen: boolean;
     entryName: string;
     entrySum: number;
+    currentTheme: EvidTheme;
     onClose: () => void;
     onValueAdded: (value: number) => void;
     onValueSet: (value: number) => void;
@@ -117,7 +121,7 @@ function EntryEditDialog(props: EntryEditDialogProps) {
     return (
         <Dialog isOpen={props.isOpen}
                     title="Úprava položky"
-                    className={Classes.DARK}
+                    className={classNames(themeClasses(props.currentTheme))}
                     onClose={props.onClose}
                     onOpened={() => {
                         document.getElementById("addEntryInput").focus();
@@ -172,6 +176,7 @@ interface EntryTableProps {
     monthId: MonthId;
     yearEntries: YearEntries;
     monthEntries: MonthEntries;
+    currentTheme: EvidTheme;
     onValueAdded: (yearId: number, monthId: MonthId, entryId: number, value: number) => void;
     onValueSet: (yearId: number, monthId: MonthId, entryId: number, value: number) => void;
 }
@@ -234,6 +239,7 @@ function EntryTable(props: EntryTableProps) {
                 isOpen={dialogStatus.isOpen()}
                 entryName={dialogStatus.entryName}
                 entrySum={dialogStatus.entrySum}
+                currentTheme={props.currentTheme}
                 onClose={() => setDialogStatus(new DialogStatus())}
                 onValueAdded={(value) => props.onValueAdded(dialogStatus.openYearId, dialogStatus.openMonthId, dialogStatus.entryId, value)}
                 onValueSet={(value) => props.onValueSet(dialogStatus.openYearId, dialogStatus.openMonthId, dialogStatus.entryId, value)}
@@ -269,6 +275,7 @@ export interface IMonthEditorProps {
     monthId: MonthId;
     yearEntries: YearEntries;
     monthEntries: MonthEntries;
+    currentTheme: EvidTheme;
     onValueAdded: (yearId: number, monthId: MonthId, entryId: number, value: number) => void;
     onValueSet: (yearId: number, monthId: MonthId, entryId: number, value: number) => void;
     onPrint: (yearId: number, monthId: MonthId) => void;
@@ -285,6 +292,7 @@ export function MonthEditor(props: IMonthEditorProps): React.ReactElement {
                         monthId={props.monthId}
                         yearEntries={props.yearEntries}
                         monthEntries={props.monthEntries}
+                        currentTheme={props.currentTheme}
                         onValueAdded={props.onValueAdded}
                         onValueSet={props.onValueSet}
                     />

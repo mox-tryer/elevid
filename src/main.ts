@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, Menu, WebContents } from 'electron';
 import { ipcMain } from 'electron-typescript-ipc';
-import { IEntryOrder, IEvidAPI, FileDialogResult } from './ui/api';
+import { IEntryOrder, IEvidAPI, FileDialogResult, EvidTheme } from './ui/api';
 import * as devOnly from "electron-devtools-installer";
 import * as settings from "electron-settings";
 import { EntryType, MonthId } from './model';
@@ -94,6 +94,11 @@ async function printReportWindow(webContents: WebContents, reportType: "year" | 
 }
 
 function installAPI(mainWindow: BrowserWindow) {
+  ipcMain.removeHandler<IEvidAPI>("getCurrentTheme");
+  ipcMain.handle<IEvidAPI>("getCurrentTheme", async () => {
+    return currentTheme;
+  });
+
   ipcMain.removeHandler<IEvidAPI>("getLastUsedDbPath");
   ipcMain.handle<IEvidAPI>("getLastUsedDbPath", async () => {
     const lastEvidDbPath = await settings.get("lastEvidDbPath") as string | null;
@@ -329,6 +334,15 @@ async function onSaveDatabase(browserWindow: BrowserWindow) {
   }
 }
 
+let currentTheme: EvidTheme = "dark";
+
+async function setCurrentTheme(browserWindow: BrowserWindow, theme: EvidTheme) {
+  currentTheme = theme;
+  //reset menu
+  browserWindow.setMenu(createMainWindowMenu());
+  ipcMain.send<IEvidAPI>(browserWindow, "themeHasChanged");
+}
+
 function createMainWindowMenu(): Menu {
   return Menu.buildFromTemplate([
     {
@@ -394,6 +408,26 @@ function createMainWindowMenu(): Menu {
         {
           label: "Na celú obrazovku",
           role: "togglefullscreen"
+        },
+        {
+          type: "separator"
+        },
+        {
+          label: "Téma",
+          submenu: [
+            {
+              label: "Tmavá",
+              type: "radio",
+              checked: (currentTheme == "dark"),
+              click: async (_menuItem, browserWindow) => await setCurrentTheme(browserWindow, "dark")
+            },
+            {
+              label: "Svetlá",
+              type: "radio",
+              checked: (currentTheme == "light"),
+              click: async (_menuItem, browserWindow) => await setCurrentTheme(browserWindow, "light")
+            }
+          ]
         }
       ]
     },
@@ -430,7 +464,9 @@ function createMainWindowMenu(): Menu {
 }
 
 const createWindow = async (): Promise<void> => {
-  const windowSettings = await settings.get("window") as WindowSettings | null;
+  const windowSettings = await settings.get("window") as WindowSettings || null;
+  const theme = await settings.get("theme") as EvidTheme || "dark";
+  currentTheme = theme;
 
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -484,6 +520,7 @@ const createWindow = async (): Promise<void> => {
     };
 
     settings.setSync("window", windowSettings);
+    settings.setSync("theme", currentTheme);
 
     if (currentDatabase.hasPath()) {
       const dbFile = currentDatabase.getFile();

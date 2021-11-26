@@ -12,7 +12,9 @@ import '@blueprintjs/popover2/lib/css/blueprint-popover2.css';
 import { AnchorButton, Button,  Classes, Dialog, FormGroup, HTMLSelect, InputGroup, Intent, Navbar, NumericInput, Switch } from '@blueprintjs/core';
 import { MonthEditorPanel, YearEditorPanel } from './editors';
 import { Tooltip2 } from '@blueprintjs/popover2';
-import { FileDialogResult } from './api';
+import { EvidTheme, FileDialogResult } from './api';
+import classNames from 'classnames';
+import { themeClasses } from './theme';
 
 const mosaicToolbarControls = React.Children.toArray([<ExpandButton />]);
 
@@ -31,6 +33,7 @@ function AddYearButton(props: AddYearButtonProps): React.ReactElement {
 interface AddYearDialogProps {
   open: boolean;
   years: number[];
+  currentTheme: EvidTheme;
   onClose: () => void;
   onAddNewYear: (newYearId: number, copyYearId: number | null) => void;
 }
@@ -53,7 +56,7 @@ function AddYearDialog(props: AddYearDialogProps) {
   // ak su v db nejake roky, v copyYearId ich vyplnit, vybrat max(yearId) a vybrat zaskrnutie kopirovania
   // validny je vtedy, ak je v newYearId vyplnene cislo a to cislo nie je v zozname existujucich rokov
   return (
-    <Dialog isOpen={props.open} onClose={props.onClose} className={Classes.DARK} title="Pridať Nový Rok">
+    <Dialog isOpen={props.open} onClose={props.onClose} className={classNames(themeClasses(props.currentTheme))} title="Pridať Nový Rok">
       <form onSubmit={(e) => {
                     e.preventDefault();
                     if (validData) {
@@ -101,6 +104,7 @@ interface AppPanelProps {
 
 interface ExplorerPanelProps extends AppPanelProps, IExplorerProps {
   dbModified: boolean;
+  currentTheme: EvidTheme;
   onAddNewYear: (newYearId: number, copyYearId: number | null) => Promise<void>;
 }
 
@@ -116,7 +120,7 @@ function ExplorerPanel(props: ExplorerPanelProps) {
     <MosaicWindow<EvidWindowId> path={props.path} title="Roky" toolbarControls={React.Children.toArray([
               <AddYearButton onAddYear={() => setAddYearDialogOpen(true)} />
             ])}>
-      <AddYearDialog open={addYearDialogOpen} years={props.dbYears} onClose={() => setAddYearDialogOpen(false)} onAddNewYear={addNewYear}/>
+      <AddYearDialog open={addYearDialogOpen} years={props.dbYears} currentTheme={props.currentTheme} onClose={() => setAddYearDialogOpen(false)} onAddNewYear={addNewYear}/>
       <Explorer dbYears={props.dbYears} onYearSelected={props.onYearSelected} onMonthSelected={props.onMonthSelected}/>
     </MosaicWindow>
   );
@@ -131,6 +135,7 @@ type SelectedNodeData = {
 interface EditorPanelProps extends AppPanelProps {
   selectedNode: SelectedNodeData;
   dbPath: string;
+  currentTheme: EvidTheme;
   onChange: () => void;
 }
 
@@ -140,10 +145,10 @@ function EditorPanel(props: EditorPanelProps) {
   let title;
 
   if (selectedNode?.monthId) {
-    innerPanel = <MonthEditorPanel yearId={selectedNode.yearId} monthId={selectedNode.monthId} dbPath={props.dbPath} onChange={props.onChange} />;
+    innerPanel = <MonthEditorPanel yearId={selectedNode.yearId} monthId={selectedNode.monthId} dbPath={props.dbPath} currentTheme={props.currentTheme} onChange={props.onChange} />;
     title = `Editor: ${selectedNode.yearId}, ${monthLabel(selectedNode.monthId)}`;
   } else if (selectedNode?.yearId) {
-    innerPanel = <YearEditorPanel yearId={selectedNode.yearId} onChange={props.onChange} />;
+    innerPanel = <YearEditorPanel yearId={selectedNode.yearId} currentTheme={props.currentTheme} onChange={props.onChange} />;
     title = `Editor: ${selectedNode.yearId}`;
   } else {
     innerPanel = <span></span>;
@@ -203,6 +208,7 @@ interface OpenSaveDialogProps {
   type: "open" | "save";
   open: boolean;
   filePath: string;
+  currentTheme: EvidTheme;
   onClose: () => void;
   onSave: (path: string, password: string) => void;
   onOpen: (path: string, password: string) => void;
@@ -268,7 +274,7 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
   return (
     <Dialog isOpen={props.open}
             title="Heslo pre databázu"
-            className={Classes.DARK}
+            className={classNames(themeClasses(props.currentTheme))}
             onClose={props.onClose}
             onOpened={() => {
               if (props.filePath) {
@@ -328,6 +334,11 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
 type EvidWindowId = "editor" | "explorer" | "output";
 
 function App() {
+  const [currentTheme, setCurrentTheme] = React.useState("dark" as EvidTheme);
+  const retrieveCurrentTheme = async () => {
+    setCurrentTheme(await window.evidAPI.invoke.getCurrentTheme());
+  }
+  React.useEffect(() => { retrieveCurrentTheme() }, []);
   const [dbYears, setDbYears] = React.useState(null as number[]);
   const retrieveCurrentDbYears = async() => {
     const currentDbYears = await window.evidAPI.invoke.getYears();
@@ -419,12 +430,13 @@ function App() {
   const tile = (id: EvidWindowId, path: MosaicBranch[]) => {
     switch (id) {
       case "editor":
-        return <EditorPanel path={path} selectedNode={selectedNode} dbPath={dbFile} onChange={() => retrieveDbModified()}/>;
+        return <EditorPanel path={path} selectedNode={selectedNode} dbPath={dbFile} currentTheme={currentTheme} onChange={() => retrieveDbModified()}/>;
       case "explorer":
         return (
           <ExplorerPanel
               path={path}
               dbYears={dbYears}
+              currentTheme={currentTheme}
               onYearSelected={(yearId) => setSelectedNode({yearId})}
               onMonthSelected={(yearId, monthId) => setSelectedNode({monthId, yearId})}
               dbModified={dbModified}
@@ -436,7 +448,10 @@ function App() {
     }
     return <div>??</div>;
   };
-  
+
+  window.evidAPI.on.themeHasChanged(async () => {
+    await retrieveCurrentTheme();
+  });
   window.evidAPI.on.dbHasChanged(async () => {
     await retrieveCurrentDbYears();
     await closeFileDialog();
@@ -453,17 +468,20 @@ function App() {
     setShowDbDialog(true);
   });
 
+  const currentThemeClasses = themeClasses(currentTheme);
+
   return (
     <div className="container">
       <OpenSaveDialog
           type={dbDialogType}
           open={showDbDialog}
           filePath={dbFile}
+          currentTheme={currentTheme}
           onClose={closeFileDialog}
           onOpen={openDb}
           onSave={saveDbAs}
       />
-      <Navbar className={Classes.DARK}>
+      <Navbar className={classNames(currentThemeClasses)}>
         <Navbar.Group align="left">
           <OpenDbButton onOpenDb={showOpenDbDialog} />
           <SaveDbButton dbModified={dbModified} onSaveDb={saveDb} />
@@ -483,7 +501,7 @@ function App() {
           second: 'editor',
           splitPercentage: 30,
         }}
-        className="mosaic-blueprint-theme bp3-dark"
+        className={classNames("mosaic-blueprint-theme", currentThemeClasses)}
       />
     </div>
   );

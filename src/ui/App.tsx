@@ -262,8 +262,22 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
 
   const validData = filePath && password;
 
+  const dbPasswordInputRef = React.createRef<HTMLInputElement>();
+  const dbPathInputRef = React.createRef<HTMLInputElement>();
+
   return (
-    <Dialog isOpen={props.open} title="Heslo pre databázu" className={Classes.DARK} onClose={props.onClose} >
+    <Dialog isOpen={props.open}
+            title="Heslo pre databázu"
+            className={Classes.DARK}
+            onClose={props.onClose}
+            onOpened={() => {
+              if (props.filePath) {
+                dbPasswordInputRef.current.focus();
+              } else {
+                dbPathInputRef.current.focus();
+              }
+            }}
+    >
          <form onSubmit={(e) => {
                     e.preventDefault();
                     if (validData) {
@@ -275,6 +289,7 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
             <FormGroup label="Súbor" labelFor="dbPathInput" inline={true} >
               <InputGroup
                       id="dbPathInput" 
+                      inputRef={dbPathInputRef}
                       placeholder="Zadajte cestu k súboru..."
                       rightElement={browseButton}
                       type="text"
@@ -287,6 +302,7 @@ function OpenSaveDialog(props: OpenSaveDialogProps) {
             <FormGroup label="Heslo" labelFor="dbPasswordInput" inline={true} >
               <InputGroup
                       id="dbPasswordInput" 
+                      inputRef={dbPasswordInputRef}
                       placeholder="Zadajte heslo..."
                       rightElement={lockButton}
                       type={showPassword ? "text" : "password"}

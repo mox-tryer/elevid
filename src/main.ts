@@ -58,8 +58,8 @@ const yearReportPrintOptions: Electron.WebContentsPrintOptions = {
 
 function printReport(parentWindow: BrowserWindow, type: "year" | "month", yearId: number, monthId?: MonthId) {
   const printWindow = new BrowserWindow({
-    height: 900,
-    width: 1600,
+    height: 600,
+    width: 1060,
     parent: parentWindow,
     modal: !!parentWindow,
     //show: false,
@@ -71,8 +71,6 @@ function printReport(parentWindow: BrowserWindow, type: "year" | "month", yearId
   });
 
   printWindow.removeMenu();
-
-  console.log("printReport(" + type + ")");
 
   let queryString = "?type=" + type + "&yearId=" + yearId;
   if (type == "month") {

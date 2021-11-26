@@ -4,11 +4,6 @@ body {
     font-family: FreeSerif;
 }
 
-.report_table {
-    font-size: 16px;
-    margin: 15px;
-}
-
 .border_t2 {
     border-top: #000000 2px solid;
 }
@@ -41,6 +36,11 @@ body {
     border-right: #000000 1px solid;
 }
 
+
+.mreport_table {
+    font-size: 16px;
+    margin: 15px;
+}
 
 .mreport_header {
     font-size: 19px;
@@ -94,4 +94,56 @@ body {
 .mreport_savings_value {
     .mreport_entry_value();
     .border_b2();
+}
+
+.yreport_page {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+
+.yreport_title {
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: italic;
+}
+
+.yreport_table {
+    font-size: 16px;
+    margin-top: 50px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.yreport_seg_break {
+    height: 30px;
+}
+
+.yreport_table_header {
+    font-weight: bold;
+    min-width: 5em;
+    padding-left: 5px;
+    padding-right: 5px;
+    .border_t2();
+    .border_b1();
+}
+
+.yreport_entry_name {
+    text-align: left;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+
+    .border_l2();
+}
+
+.yreport_entry_value {
+    text-align: right;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 2px;
+    padding-bottom: 2px;
 }

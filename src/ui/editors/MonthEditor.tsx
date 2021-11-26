@@ -74,6 +74,21 @@ interface EntryEditDialogProps {
     onValueSet: (value: number) => void;
 }
 
+function createNumberSetter(valueSetter: (num: number) => void, defautlValue: number) {
+    return (num: number, txt: string) => {
+        if (isNaN(num)) {
+            const num2 = Number(txt.replace(",", "."));
+            if (!isNaN(num2)) {
+                valueSetter(num2);
+            } else {
+                valueSetter(defautlValue);
+            }
+        } else {
+            valueSetter(num);
+        }
+    };
+}
+
 function EntryEditDialog(props: EntryEditDialogProps) {
     const [valueForAdd, setValueForAdd] = React.useState(undefined as number | undefined);
     const [valueForSet, setValueForSet] = React.useState(props.entrySum);
@@ -120,7 +135,8 @@ function EntryEditDialog(props: EntryEditDialogProps) {
                         <FormGroup intent="primary" label="Pridať" labelFor="addEntryInput" helperText="Pridávanie sumy k existujúcej sume na položke">
                             <ControlGroup>
                                 <NumericInput id="addEntryInput" inputRef={valueForAddRef} buttonPosition="none" leftIcon="euro" placeholder="Suma..."
-                                        onValueChange={setValueForAdd}
+                                        onValueChange={createNumberSetter(setValueForAdd, 0)}
+                                        allowNumericCharactersOnly={false}
                                 />
                                 <Button icon="add" type="submit" />
                             </ControlGroup>
@@ -135,7 +151,7 @@ function EntryEditDialog(props: EntryEditDialogProps) {
                     <FormGroup label="Nastaviť" labelFor="setEntryInput" helperText="Nastavenie sumy na položke">
                         <ControlGroup>
                             <NumericInput id="setEntryInput" buttonPosition="none" leftIcon="euro" placeholder="Suma..."
-                                    defaultValue={props.entrySum} onValueChange={setValueForSet}
+                                    defaultValue={props.entrySum} onValueChange={createNumberSetter(setValueForSet, props.entrySum)} allowNumericCharactersOnly={false}
                             />
                             <Button icon="equals" type="submit" />
                         </ControlGroup>

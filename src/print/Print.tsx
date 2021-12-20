@@ -248,6 +248,7 @@ function yearReportSegment(segmentId: number, yearEntries: YearEntries, monthSum
 }
 
 function PrintYearReport(props: PrintYearReportProps) {
+    /* Ak by som chcel konfigurovatelne velkosti pisma a marginov, tak vid tu: https://www.w3schools.com/css/css3_variables_javascript.asp */
     const [yearEntries, setYearEntries] = React.useState(null as YearEntries);
     const retrieveYearEntries = async (yearId: number) => {
       const yearEntries = await window.evidAPI.invoke.getYearEntries(yearId);

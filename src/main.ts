@@ -77,6 +77,10 @@ function printReport(parentWindow: BrowserWindow, type: "year" | "month", yearId
     queryString += "&monthId=" + monthId;
   }
 
+  // if (isDev) {
+  //   printWindow.webContents.openDevTools({mode: "detach"});
+  // }
+
   // and load the index.html of the app.
   printWindow.loadURL(PRINT_WINDOW_WEBPACK_ENTRY + queryString);
 }

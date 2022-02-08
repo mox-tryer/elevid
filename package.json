@@ -1,7 +1,7 @@
 {
   "name": "elevid",
   "productName": "elevid",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Jednoducha evidencia rodinnych vydavkov",
   "main": ".webpack/main",
   "scripts": {
